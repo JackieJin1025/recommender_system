@@ -49,7 +49,7 @@ class ItemCF(BaseCF):
         item_sim = nmat.T.dot(nmat)
         return item_sim
 
-    def predict_for_user(self, user, items, ratings=None):
+    def predict_for_user(self, user, items=None, ratings=None):
         min_threshold = self.min_threshold
         min_nn = self.min_nn
         max_nn = self.max_nn
@@ -58,11 +58,17 @@ class ItemCF(BaseCF):
         # convert rmat to array
         rmat_array = self.rmat.toarray()
 
-        items = np.array(items)
+        if items is not None:
+            items = np.array(items)
+        else:
+            items = self.items.values
+
         valid_mask = self.items.get_indexer(items) >= 0
 
         if np.sum(~valid_mask) > 0:
             self.log.warning("%s are not valid" % items[~valid_mask])
+            for e in items[~valid_mask]:
+                result[e] = np.nan
 
         items = items[valid_mask]
         for item in items:
@@ -83,14 +89,16 @@ class ItemCF(BaseCF):
             item_idx = item_idx[:max_nn]
             if len(item_idx) < min_nn:
                 self.log.warning("item %s does not have enough neighbors (%s < %s)", item, len(item_idx), min_nn)
+                result[item] = np.nan
                 continue
 
             ratings = rmat_array[upos, item_idx]
             sim_wt = self.item_sim_matrix[ipos, item_idx]
             rating = ratings.dot(sim_wt) / sim_wt.sum()
-            print(item)
             result[item] = rating
-        return result
+
+        df = pd.Series(result)
+        return df
 
 
     def item_similarity_deprecated(self):
@@ -167,11 +175,11 @@ if __name__ == '__main__':
     ratings = ratings.rename(columns={'UserID': 'user', 'MovieID': 'item', 'Rating': 'rating'})
     ratings[['user', 'item']] = ratings[['user', 'item']].astype(int)
     ratings['rating'] = ratings['rating'].astype(float)
-    itemcf = ItemCF()
+    itemcf = ItemCF(min_threshold=0.1, min_nn=5)
+    print(itemcf.get_params())
     itemcf.fit(ratings)
 
     user = 1
     movies = list(movies.MovieID.astype(int))
-    res = itemcf.predict_for_user(user, movies)
-    df = pd.Series(res)
+    df = itemcf.predict_for_user(user, movies)
     print(df)

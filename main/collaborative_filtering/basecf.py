@@ -1,8 +1,9 @@
+import inspect
 from abc import abstractmethod
 from collections import defaultdict
 
 from main.util.data import sparse_ratings
-from main.util.debug import LogUtil
+from main.util.debug import LogUtil, Timer
 from main.util.metric import precision, recall, coverage
 from os import path
 
@@ -30,15 +31,44 @@ class BaseCF(object):
 
         self.log = LogUtil.getLogger(self.__class__.__name__)
 
+
+
+    def get_params(self, deep=True):
+        """
+        Get the parameters for this algorithm (as in scikit-learn).  Algorithm parameters
+        should match constructor argument names.
+
+        The default implementation returns all attributes that match a constructor parameter
+        name.  It should be compatible with :py:meth:`scikit.base.BaseEstimator.get_params`
+        method so that LensKit alogrithms can be cloned with :py:func:`scikit.base.clone`
+        as well as :py:func:`lenskit.util.clone`.
+
+        Returns:
+            dict: the algorithm parameters.
+        """
+        sig = inspect.signature(self.__class__)
+        names = list(sig.parameters.keys())
+        params = {}
+        for name in names:
+            if hasattr(self, name):
+                value = getattr(self, name)
+                params[name] = value
+                if deep and hasattr(value, 'get_params'):
+                    sps = value.get_params(deep)
+                    for k, sv in sps.items():
+                        params[name + '__' + k] = sv
+
+        return params
+
     def init_data(self, origin_data):
         """
         :param origin_data: dataframe 'user', 'item', 'rating'
         :return:
         """
-        items = set()
-        users = set()
         self.rmat, self.users, self.items = sparse_ratings(origin_data)
 
+        # items = set()
+        # users = set()
         # for user, item, rating in origin_data.values:
         #     self.user2items[user].add(item)
         #     self.item2users[item].add(user)
@@ -56,16 +86,20 @@ class BaseCF(object):
         #     self.idx2user[idx] = e
 
     def fit(self, origin_data):
+        clock = Timer()
         self.init_data(origin_data)
+        e0 = clock.restart()
+        self.log.info('loading init data takes %.3f ...', e0)
         flag = self.filename is not None
-
         if flag and path.exists(self.filename):
             self._load()
             return
 
+        e1 = clock.restart()
         self.log.info('start training ...')
         self._train()
-        self.log.info('training is finished ...')
+        e2 = clock.restart()
+        self.log.info('training takes %.3f ...', e2 )
         if flag:
             self._save()
         return self
