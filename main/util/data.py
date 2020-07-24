@@ -1,6 +1,7 @@
 import os
 import pandas as pd
-
+import numpy as np
+from scipy.sparse import coo_matrix
 from main.util.debug import LogUtil, Timer
 
 
@@ -43,4 +44,37 @@ def train_test_split(ratings, frac=0.2 , group='UserID', seed=1):
     e0 = clock.restart()
     log.info("splitting test and train data takes %.3f secs", e0)
     return ratings_train, ratings_test
+
+
+def sparse_ratings(ratings, users=None, items=None):
+    """
+    Convert a rating table to a sparse matrix of ratings.
+
+    Args:
+        ratings(pandas.DataFrame): a data table of (user, item, rating) triples.
+        users(pandas.Index): an index of user IDs.
+        items(pandas.Index): an index of items IDs.
+
+    Returns:
+            tuple containing the sparse matrix, user index, and item index.
+    """
+    if users is None:
+        users = pd.Index(np.unique(ratings.user), name='user')
+    if items is None:
+        items = pd.Index(np.unique(ratings.item), name='item')
+
+    row_ind = users.get_indexer(ratings.user).astype(np.intc)
+    if np.any(row_ind < 0):
+        raise ValueError('provided user index does not cover all users')
+    col_ind = items.get_indexer(ratings.item).astype(np.intc)
+    if np.any(col_ind < 0):
+        raise ValueError('provided item index does not cover all users')
+
+    if 'rating' in ratings.columns:
+        vals = np.require(ratings.rating.values, np.float64)
+    else:
+        vals = None
+
+    matrix = coo_matrix((vals, (row_ind, col_ind)), shape= (len(users), len(items)))
+    return matrix, users, items
 

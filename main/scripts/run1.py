@@ -12,12 +12,16 @@ def _test_item_cf():
     movies = get_data(os.path.join(base_dir, "movies.dat"), 'MovieID::Title::Genres'.split("::"))
     ratings = get_data(os.path.join(base_dir, "ratings.dat") , "UserID::MovieID::Rating::Timestamp".split("::"))
     users = get_data(os.path.join(base_dir, "users.dat"), "UserID::Gender::Age::Occupation::Zip-code".split("::"))
-    user_ids = list(users['UserID'].unique())
-    train_data, test_data = train_test_split(ratings[['UserID', 'MovieID', 'Rating']], frac=0.2)
+
+    ratings = ratings.rename(columns={'UserID': 'user', 'MovieID': 'item', 'Rating': 'rating'})
+
+    ratings[['user', 'item']] = ratings[['user', 'item']].astype(int)
+    ratings['rating'] = ratings['rating'].astype(float)
+    train_data, test_data = train_test_split(ratings[['user', 'item', 'rating']], frac=0.2)
 
     cached_filename = "/Users/Jackie/Work/RecommendationSystem/data/item_cf.pickle"
     model = ItemCF(discount_popularity=True, filename=cached_filename)
-    model.train(train_data)
+    model.fit(train_data)
     model.test(None, 10, test_data)
 
 
@@ -31,10 +35,10 @@ def _test_user_cf():
 
     cached_filename = "/Users/Jackie/Work/RecommendationSystem/data/user_cf.pickle"
     model = UserCF(discount_popularity=True, filename=cached_filename)
-    model.train(train_data)
+    model.fit(train_data)
     model.test(None, 10, test_data)
 
 
 if __name__ == '__main__':
-    _test_user_cf()
+    # _test_user_cf()
     _test_item_cf()

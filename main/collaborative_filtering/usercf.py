@@ -44,7 +44,17 @@ class UserCF(BaseCF):
         e = c.restart()
         self.log.info("loading user_sim_matrix from %s takes %.3f", self.filename, e)
 
+
     def user_similarity(self):
+        # user by item
+        rmat = self.rmat
+        #normalize by user norm
+        user_norm = np.linalg.norm(rmat.toarray(), axis=1)
+        nmat = rmat.toarray() / user_norm.reshape(-1, 1)
+        user_sim = nmat.dot(nmat.T)
+        return user_sim
+
+    def user_similarity_deprecated(self):
         """
             define user similarity based on cosine of movies watched
             train: dict user -> a list of items
@@ -119,20 +129,3 @@ class UserCF(BaseCF):
 
 
 
-
-
-if __name__ == '__main__':
-    base_dir = "/Users/Jackie/Work/RecommendationSystem/data/ml-1m"
-    filename = "ratings.dat"
-    movies = get_data(base_dir, "movies.dat", 'MovieID::Title::Genres'.split("::"))
-    ratings = get_data(base_dir,"ratings.dat", "UserID::MovieID::Rating::Timestamp".split("::"))
-    users = get_data(base_dir,"users.dat", "UserID::Gender::Age::Occupation::Zip-code".split("::"))
-    user_ids = list(users['UserID'].unique())
-    train_data = ratings[['UserID', 'MovieID', 'Rating']]
-
-    train_data, test_data = train_test_split(ratings[['UserID', 'MovieID', 'Rating']], frac=0.2)
-
-    #model = UserCF(discount_popularity=True)
-    model = ItemCF()
-    model.train(train_data)
-    model.test(10, test_data)

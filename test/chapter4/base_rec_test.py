@@ -28,7 +28,7 @@ class BaseRecTestCase(unittest.TestCase):
             base_rec_model.recommend(8, 3)
 
         # 正常推荐
-        base_rec_model.train(data)
+        base_rec_model.fit(data)
         user_id = 10523
         self.assertEqual(10, len(base_rec_model.recommend(user_id, 10)))
         self.assertTrue(isinstance(base_rec_model.recommend(user_id, 10), list))
@@ -45,7 +45,7 @@ class BaseRecTestCase(unittest.TestCase):
 
         base_rec_model = BaseRec()
         train, test = delicious_reader.split_data("../data/delicious-2k/user_taggedbookmarks-timestamps.dat", k=1)
-        base_rec_model.train(train)
+        base_rec_model.fit(train)
         recommends = base_rec_model.recommend_users(users, 10)
 
         for user, recommend in recommends.items():

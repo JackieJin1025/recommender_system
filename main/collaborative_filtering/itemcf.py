@@ -4,12 +4,23 @@ import pickle
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from main.collaborative_filtering.basecf import BaseCF
+from main.util.data import get_data
+import os
+import pandas as pd
 
 
 class ItemCF(BaseCF):
 
-    def __init__(self, discount_popularity=False, *args, **kwargs):
-        self.discount_popularity = discount_popularity
+    def __init__(self, discount_popularity=False, 
+                 min_nn=1, 
+                 max_nn=50,
+                 min_threshold=None,
+                 *args, **kwargs):
+        self.discount_popularity = discount_popularity        
+        self.min_nn = min_nn 
+        self.max_nn = max_nn 
+        self.min_threshold = min_threshold
+
         self.item_sim_matrix = None
         super(ItemCF, self).__init__(*args, **kwargs)
 
@@ -30,6 +41,59 @@ class ItemCF(BaseCF):
         self.log.info("loaded item_sim_matrix from %s", self.filename)
 
     def item_similarity(self):
+        # user by item
+        rmat = self.rmat
+        #normalize by item std
+        item_norm = np.linalg.norm(rmat.toarray(), axis=0)
+        nmat = rmat.toarray() / item_norm.reshape(1, -1)
+        item_sim = nmat.T.dot(nmat)
+        return item_sim
+
+    def predict_for_user(self, user, items, ratings=None):
+        min_threshold = self.min_threshold
+        min_nn = self.min_nn
+        max_nn = self.max_nn
+
+        result = dict()
+        # convert rmat to array
+        rmat_array = self.rmat.toarray()
+
+        items = np.array(items)
+        valid_mask = self.items.get_indexer(items) >= 0
+
+        if np.sum(~valid_mask) > 0:
+            self.log.warning("%s are not valid" % items[~valid_mask])
+
+        items = items[valid_mask]
+        for item in items:
+
+            upos = self.users.get_loc(user)
+            ipos = self.items.get_loc(item)
+
+            # idx with decending similarities with itself
+            item_idx = np.argsort(self.item_sim_matrix[ipos, :])[::-1][1:]
+
+            # sim need to meet min_threshold
+            if min_threshold is not None:
+                item_idx = item_idx[self.item_sim_matrix[ipos, item_idx] > min_threshold]
+
+            # sim need to meet min_threshold
+            item_idx = item_idx[rmat_array[upos, item_idx] != 0]
+
+            item_idx = item_idx[:max_nn]
+            if len(item_idx) < min_nn:
+                self.log.warning("item %s does not have enough neighbors (%s < %s)", item, len(item_idx), min_nn)
+                continue
+
+            ratings = rmat_array[upos, item_idx]
+            sim_wt = self.item_sim_matrix[ipos, item_idx]
+            rating = ratings.dot(sim_wt) / sim_wt.sum()
+            print(item)
+            result[item] = rating
+        return result
+
+
+    def item_similarity_deprecated(self):
         """
             define item similarity based on cosine of users who watched the item
             train: dict user -> a list of items
@@ -63,6 +127,7 @@ class ItemCF(BaseCF):
 
     def recommend(self, user, N, K):
         """
+            to be deprecated
             recommend top N items based on top k similar items from each item the user likes
         """
 
@@ -83,6 +148,7 @@ class ItemCF(BaseCF):
 
     def recommend_users(self, users, N, K):
         """
+            to be deprecated
             @param users:    a list of users
             @return:  {user : list of recommended items}
         """
@@ -92,3 +158,20 @@ class ItemCF(BaseCF):
             recommends[user] = user_recommends
 
         return recommends
+
+
+if __name__ == '__main__':
+    base_dir = "/Users/Jackie/Work/RecommendationSystem/data/ml-1m"
+    movies = get_data(os.path.join(base_dir, "movies.dat"), 'MovieID::Title::Genres'.split("::"))
+    ratings = get_data(os.path.join(base_dir, "ratings.dat") , "UserID::MovieID::Rating::Timestamp".split("::"))
+    ratings = ratings.rename(columns={'UserID': 'user', 'MovieID': 'item', 'Rating': 'rating'})
+    ratings[['user', 'item']] = ratings[['user', 'item']].astype(int)
+    ratings['rating'] = ratings['rating'].astype(float)
+    itemcf = ItemCF()
+    itemcf.fit(ratings)
+
+    user = 1
+    movies = list(movies.MovieID.astype(int))
+    res = itemcf.predict_for_user(user, movies)
+    df = pd.Series(res)
+    print(df)

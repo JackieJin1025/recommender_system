@@ -1,4 +1,7 @@
+from abc import abstractmethod
 from collections import defaultdict
+
+from main.util.data import sparse_ratings
 from main.util.debug import LogUtil
 from main.util.metric import precision, recall, coverage
 from os import path
@@ -20,33 +23,39 @@ class BaseCF(object):
         self.idx2user = dict()
         self.ratings = dict()
         self.item_popularity = defaultdict(int)
+
+        self.rmat = None
+        self.users = None
+        self.items = None
+
         self.log = LogUtil.getLogger(self.__class__.__name__)
 
     def init_data(self, origin_data):
         """
-        :param origin_data: dataframe 'UserID', 'MovieID', 'Rating'
+        :param origin_data: dataframe 'user', 'item', 'rating'
         :return:
         """
         items = set()
         users = set()
+        self.rmat, self.users, self.items = sparse_ratings(origin_data)
 
-        for user, item, rating in origin_data.values:
-            self.user2items[user].add(item)
-            self.item2users[item].add(user)
-            self.ratings[(user, item)] = rating
-            self.item_popularity[item] += 1
-            items.add(item)
-            users.add(user)
+        # for user, item, rating in origin_data.values:
+        #     self.user2items[user].add(item)
+        #     self.item2users[item].add(user)
+        #     self.ratings[(user, item)] = rating
+        #     self.item_popularity[item] += 1
+        #     items.add(item)
+        #     users.add(user)
+        #
+        # for idx, e in enumerate(items):
+        #     self.item2idx[e] = idx
+        #     self.idx2item[idx] = e
+        #
+        # for idx, e in enumerate(users):
+        #     self.user2idx[e] = idx
+        #     self.idx2user[idx] = e
 
-        for idx, e in enumerate(items):
-            self.item2idx[e] = idx
-            self.idx2item[idx] = e
-
-        for idx, e in enumerate(users):
-            self.user2idx[e] = idx
-            self.idx2user[idx] = e
-
-    def train(self, origin_data):
+    def fit(self, origin_data):
         self.init_data(origin_data)
         flag = self.filename is not None
 
@@ -59,16 +68,23 @@ class BaseCF(object):
         self.log.info('training is finished ...')
         if flag:
             self._save()
+        return self
 
-
+    @abstractmethod
     def _load(self):
-        raise Exception("not implemented")
+        raise NotImplemented()
 
+    @abstractmethod
     def _save(self):
-        raise Exception("not implemented")
+        raise NotImplemented()
 
+    @abstractmethod
     def recommend(self, user_id, n, K):
-        raise Exception("not implemented")
+        raise NotImplemented()
+
+    @abstractmethod
+    def predict_for_user(self, user, items, ratings=None):
+        raise NotImplemented()
 
     def test(self, N, K, test_df):
         """
