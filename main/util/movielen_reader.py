@@ -1,45 +1,26 @@
-#! /usr/bin/python3
-# coding=utf-8
-'''
-Created on 2018年6月10日
-
-@author: qcymkxyc
-'''
-import random
+from main.util.data import get_data
+import os
+from pathlib import Path
 
 
-def loadfile(filename):
+def load_movielen_data():
     """
-        根据文件名载入数据
+    :return: a tuple with three dataframes: ratings, users, movies
     """
-    with open(filename, "r") as f:
-        for line in f:
-            yield line
+    p = Path(__file__).parents[2]
+    base_dir = os.path.join(p, 'data', 'ml-1m')
+    movies = get_data(os.path.join(base_dir, "movies.dat"), 'MovieID::Title::Genres'.split("::"))
+    ratings = get_data(os.path.join(base_dir, "ratings.dat"), "UserID::MovieID::Rating::Timestamp".split("::"))
+    users = get_data(os.path.join(base_dir, "users.dat"), "UserID::Gender::Age::Occupation::Zip-code".split("::"))
+    movies = movies.rename(columns={'MovieID': 'item'})
+    movies['item'] = movies['item'].astype(int)
+    users = users.rename(columns={'UserID': 'user'})
+    users['user'] = users['user'].astype(int)
+    ratings = ratings.rename(columns={'UserID': 'user', 'MovieID': 'item', 'Rating': 'rating'})
+    ratings[['user', 'item']] = ratings[['user', 'item']].astype(int)
+    ratings['rating'] = ratings['rating'].astype(float)
+    return ratings, users, movies
 
 
-def read_rating_data(path="./data/ml-1m/ratings.dat", train_rate=1., seed=1):
-    """载入评分数据
-        @param path:  文件路径
-        @param train_rate:   训练集所占整个数据集的比例，默认为1，表示所有的返回数据都是训练集
-        @return: (训练集，测试集) 
-    """
-    trainset = list()
-    testset = list()
-
-    random.seed(seed)
-    for line in loadfile(filename=path):
-        user, movie, rating, _ = line.split('::')
-        if random.random() < train_rate:
-            trainset.append([int(user), int(movie), int(rating)])
-        else:
-            testset.append([int(user), int(movie), int(rating)])
-    return trainset, testset
-
-
-def all_items(path="./data/ml-1m/ratings.dat"):
-    """返回所有的movie"""
-    items = set()
-    for line in loadfile(filename=path):
-        _, movie, _, _ = line.split("::")
-        items.add(movie)
-    return items
+if __name__ == '__main__':
+    load_movielen_data()

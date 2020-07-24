@@ -8,30 +8,16 @@ from main.util.metric import precision, recall, coverage
 from os import path
 
 
-
-class BaseCF(object):
+class BaseAlgo(object):
     def __init__(self, filename=None):
         """
             :param filename: if provided, cache parameters trained
         """
         self.filename = filename
-
-        self.user2items = defaultdict(set)
-        self.item2users = defaultdict(set)
-        self.item2idx = dict()
-        self.idx2item = dict()
-        self.user2idx = dict()
-        self.idx2user = dict()
-        self.ratings = dict()
-        self.item_popularity = defaultdict(int)
-
         self.rmat = None
         self.users = None
         self.items = None
-
         self.log = LogUtil.getLogger(self.__class__.__name__)
-
-
 
     def get_params(self, deep=True):
         """
@@ -67,24 +53,6 @@ class BaseCF(object):
         """
         self.rmat, self.users, self.items = sparse_ratings(origin_data)
 
-        # items = set()
-        # users = set()
-        # for user, item, rating in origin_data.values:
-        #     self.user2items[user].add(item)
-        #     self.item2users[item].add(user)
-        #     self.ratings[(user, item)] = rating
-        #     self.item_popularity[item] += 1
-        #     items.add(item)
-        #     users.add(user)
-        #
-        # for idx, e in enumerate(items):
-        #     self.item2idx[e] = idx
-        #     self.idx2item[idx] = e
-        #
-        # for idx, e in enumerate(users):
-        #     self.user2idx[e] = idx
-        #     self.idx2user[idx] = e
-
     def fit(self, origin_data):
         clock = Timer()
         self.init_data(origin_data)
@@ -95,7 +63,7 @@ class BaseCF(object):
             self._load()
             return
 
-        e1 = clock.restart()
+        _ = clock.restart()
         self.log.info('start training ...')
         self._train()
         e2 = clock.restart()
@@ -105,19 +73,15 @@ class BaseCF(object):
         return self
 
     @abstractmethod
+    def _train(self):
+        raise NotImplemented()
+
+    @abstractmethod
     def _load(self):
         raise NotImplemented()
 
     @abstractmethod
     def _save(self):
-        raise NotImplemented()
-
-    @abstractmethod
-    def recommend(self, user_id, n, K):
-        raise NotImplemented()
-
-    @abstractmethod
-    def predict_for_user(self, user, items, ratings=None):
         raise NotImplemented()
 
     def test(self, N, K, test_df):
@@ -139,7 +103,7 @@ class BaseCF(object):
             n = len(test_movies)
             # recommend the same number of movies watched by user_id
             recommends[user_id] = self.recommend(user_id, n, K)
-            cnt+= 1
+            cnt += 1
             if cnt > 500:
                 break
 

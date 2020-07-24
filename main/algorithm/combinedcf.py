@@ -1,8 +1,8 @@
-from main.collaborative_filtering.aggregator import EqualAggregator
-from main.collaborative_filtering.basecf import BaseCF
+from main.algorithm.aggregator import EqualAggregator
+from main.algorithm.basealgo import BaseAlgo
 
 
-class CombinedCF(BaseCF):
+class CombinedCF(BaseAlgo):
     def __init__(self, predictors, aggregator=None, *args, **kwargs):
         self.predictors = predictors
         if aggregator is None:

@@ -1,12 +1,13 @@
 import pickle
 import random
 from operator import itemgetter
-from main.collaborative_filtering.basecf import BaseCF
+from main.algorithm.basealgo import BaseAlgo
 import numpy as np
 from main.util.debug import Timer
+from main.util.movielen_reader import load_movielen_data
 
 
-class LFM(BaseCF):
+class LFM(BaseAlgo):
     """
         latent factor model
     """
@@ -28,28 +29,26 @@ class LFM(BaseCF):
         self.item_q = None # n x k
         super(LFM, self).__init__(*args, **kwargs)
 
-
     def init_latent_factor(self):
         k = self.k
-        m = len(self.user2idx)
-        n = len(self.item2idx)
+        m = len(self.users)
+        n = len(self.items)
         # initilize latent factor matrix for users and items
-        self.user_p = np.random.normal(size = (m ,k))
-        self.item_q = np.random.normal(size=  (n, k))
+        self.user_p = np.random.normal(size=(m,k))
+        self.item_q = np.random.normal(size=(n, k))
 
-
-    def select_negatives(self, user_movies):
+    def select_negatives(self, user_items):
         """
-            @param user_movies: positive samples from user
+            @param user_items: positive samples from user
             @return: return nagetive samples
         """
         samples = dict()
-        items = list(self.item2idx.keys())
-        for item in user_movies:
+        items = list(self.items)
+        for item in user_items:
             samples[item] = 1
 
         n_negative = 0
-        n = len(user_movies)
+        n = len(user_items)
         for _ in range(n* 5):
             # have max iter in case num(user_movies) is too large
             negitive_sample = random.choice(items)
@@ -61,33 +60,36 @@ class LFM(BaseCF):
                 break
         return samples
 
-
     def _train(self):
         self.init_latent_factor()
         lr = self.learning_rate
         rr = self.regularization_rate
-        epochs =  self.epochs
+        epochs = self.epochs
         clock = Timer()
+        rmat_array = self.rmat.toarray()
+
         for epoch in range(epochs):
-            print("epoch {} started: ".format(epoch))
-            for user, user_movies in self.user2items.items():
-                select_samples = self.select_negatives(user_movies)
+            self.log.info("epoch {} started: ".format(epoch))
+            for uid in range(rmat_array.shape[0]):
+                user = self.users[uid]
+                ratings = rmat_array[uid, :]
+                user_items = self.items[np.argwhere(ratings != 0).flatten()]
+                select_samples = self.select_negatives(user_items)
                 for item, rui in select_samples.items():
                     err = rui - self.predict(user, item)
-                    uid = self.user2idx[user]
-                    iid = self.item2idx[item]
+                    uid = self.users.get_loc(user)
+                    iid = self.items.get_loc(item)
                     user_latent = self.user_p[uid, :]
                     movie_latent = self.item_q[iid, :]
                     
                     # gradient descent 
                     self.user_p[uid, :] += lr * (err * movie_latent - rr * user_latent)
-                    #print(self.user_p[user])
                     self.item_q[iid, :] += lr * (err * user_latent - rr * movie_latent)
             e0 = clock.restart()
             loss = self.loss()
             e1 = clock.restart()
-            print("loss: {}".format(loss))
-            print("time elapsed: {}, {}".format(e0, e1))
+            self.log.info("loss: {}".format(loss))
+            self.log.info("time elapsed: {}, {}".format(e0, e1))
 
     def _save(self):
         # cache trained parameter
@@ -104,41 +106,25 @@ class LFM(BaseCF):
     def loss(self):
         """loss function """
         rr = self.regularization_rate
-        m = len(self.user2idx)
-        n = len(self.item2idx)
-
-        y = np.zeros( (m, n))
-        for user, uid in self.user2idx.items():
-            for item, iid in self.item2idx.items():
-                if (user, item) in self.ratings:
-                    y[uid, iid] = 1
-
+        rmat_array = self.rmat.toarray()
+        y = (rmat_array != 0).astype(int)
         pre = self.user_p.dot(self.item_q.T)
         yhat = 1.0 / (1 + np.exp(-pre))
         err = y - yhat
-        c = np.sum(np.square(err))  +  rr * np.sum(np.square(self.user_p)) +  rr * np.sum(np.square(self.item_q))
+        c = np.sum(np.square(err)) + rr * np.sum(np.square(self.user_p)) + rr * np.sum(np.square(self.item_q))
         return c
 
-
     def predict(self, user, item):
-        uid = self.user2idx[user]
-        iid = self.item2idx[item]
-        pre =  np.dot(self.user_p[uid, :], self.item_q[iid, :])
+        uid = self.users.get_loc(user)
+        iid = self.items.get_loc(item)
+        pre = np.dot(self.user_p[uid, :], self.item_q[iid, :])
         # convert to sigmoid
         return 1.0 / (1 + np.exp(-pre))
 
 
-    def recommend_user(self, user, N, K):
-        """
-            recommend top N items based on top k similar items from each item the user likes
-        """
-        print("start recommend %s with %s items" % (user, N))
-        seen_items = self.user2items[user]
+if __name__ == '__main__':
 
-        recommends = dict()
-        for item, _ in self.item2idx.items():
-            if item in seen_items:
-                continue
-            recommends[item] = self.predict(user, item)
-        return dict(sorted(recommends.items(), key=itemgetter(1), reverse=True)[: N])
-
+    ratings, users, movies = load_movielen_data()
+    model = LFM(k=10)
+    print(model.get_params())
+    model.fit(ratings)
