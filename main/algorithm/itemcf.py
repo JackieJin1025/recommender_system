@@ -103,7 +103,7 @@ class ItemCF(BaseAlgo):
 
 if __name__ == '__main__':
 
-    ratings, movies = load_movielen_data()
+    ratings, users, movies = load_movielen_data()
     itemcf = ItemCF(min_threshold=0.1, min_nn=5)
     print(itemcf.get_params())
     itemcf.fit(ratings)

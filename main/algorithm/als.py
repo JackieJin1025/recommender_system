@@ -1,0 +1,107 @@
+from collections import defaultdict
+from operator import itemgetter
+import pickle
+
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+from main.algorithm.basealgo import BaseAlgo
+from main.util.data import get_data
+import os
+import pandas as pd
+
+from main.util.metric import RMSE
+from main.util.movielen_reader import load_movielen_data
+
+
+class ALS(BaseAlgo):
+    """
+    Train a matrix factorization model using Alternating Least Squares
+    to predict empty entries in a matrix
+
+    reference: http://ethen8181.github.io/machine-learning/recsys/1_ALSWR.html
+    https://www.ethanrosenthal.com/2016/01/09/explicit-matrix-factorization-sgd-als/
+    https://math.stackexchange.com/questions/1072451/analytic-solution-for-matrix-factorization-using-alternating-least-squares
+    https://medium.com/radon-dev/als-implicit-collaborative-filtering-5ed653ba39fe
+    http://yifanhu.net/PUB/cf.pdf
+    """
+    def __init__(self, n_iters, n_factors, reg, *args, **kwargs):
+        self.n_iters = n_iters
+        self.n_factors = n_factors
+        self.reg = reg
+        self.user_p = None
+        self.item_q = None
+        super(ALS, self).__init__(*args, **kwargs)
+
+    def _init_latent_factor(self):
+        """
+            initialize latent matrix
+        """
+        k = self.n_factors
+        m = len(self.users)
+        n = len(self.items)
+
+        # initilize latent factor matrix for users and items
+        self.user_p = np.random.normal(size=(m, k))
+        self.item_q = np.random.normal(size=(n, k))
+
+    def _train(self):
+        self._init_latent_factor()
+        for i in range(self.n_iters):
+            self.user_p = self._als_step(self.rmat, self.item_q)
+            self.item_q = self._als_step(self.rmat.T, self.user_p)
+            y_pred = self._predict()
+            y_true = self.rmat.toarray()
+            mask = np.nonzero(y_true)
+            err = RMSE(y_pred[mask], y_true[mask])
+            if i % 5 == 0:
+                self.log.info("RMSE on iter %d : %.3f", i, err)
+
+    def _als_step(self, rmat, fixed_vecs):
+        """rmat is m x n  and fixed_vecs is n x k """
+        A = (fixed_vecs.T.dot(fixed_vecs) + np.eye(self.n_factors) * self.reg)
+        A_inv = np.linalg.inv(A)
+        solved_vecs = rmat.toarray().dot(fixed_vecs).dot(A_inv)
+        return solved_vecs
+
+    def _predict(self, user=None):
+
+        if user is None:
+            pred = self.user_p.dot(self.item_q.T)
+            return pred
+
+        idx = self.users.get_loc(user)
+        pred = self.item_q.dot(self.user_p[idx, :])
+        return pred
+
+    def predict_for_user(self, user, items=None, ratings=None):
+
+        # convert rmat to array
+        if items is not None:
+            items = np.array(items)
+        else:
+            items = self.items.values
+
+        # mark items not in the model universe as np.nan
+        item_idx = self.items.get_indexer(items)
+        invalid_items = items[item_idx == -1]
+        df = pd.Series(data=np.NAN, index=invalid_items)
+
+        item_idx = item_idx[item_idx >= 0]
+        pred = self._predict(user)
+        items = items[item_idx]
+        pred = pred[item_idx]
+        df = df.append(pd.Series(data=pred, index=items))
+        return df
+
+
+if __name__ == '__main__':
+
+    ratings, users, movies = load_movielen_data()
+    als = ALS(n_factors=40, n_iters=20, reg=0.001)
+    print(als.get_params())
+    als.fit(ratings)
+    user = 1
+    movies = list(movies.item.astype(int))
+    df = als.predict_for_user(user, movies)
+    print(df)
