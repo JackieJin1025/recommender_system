@@ -5,6 +5,11 @@
 import numpy as np
 
 
+def sparsity(arr):
+    return 1 - (np.sum((arr != 0)) / (arr.shape[0] * arr.shape[1]))
+
+
+
 def RMSE(pred_rating, actual_rating):
     """
         pred_rating: array
@@ -15,11 +20,9 @@ def RMSE(pred_rating, actual_rating):
 
 
 def precision(recommends, tests):
-    """计算Precision
-    :param recommends: dict
-        给用户推荐的商品，recommends为一个dict，格式为 { userID : 推荐的物品 }
-    :param tests: dict
-        测试集，同样为一个dict，格式为 { userID : 实际发生事务的物品 }
+    """
+    :param recommends: dict { userID : recommended items  }
+    :param tests: dict { userID : true items  }
     :return: float
         Precision
     """
@@ -37,8 +40,8 @@ def precision(recommends, tests):
 def recall(recommends, tests):
     """
         计算Recall
-        @param recommends:   给用户推荐的商品，recommends为一个dict，格式为 { userID : 推荐的物品 }
-        @param tests:  测试集，同样为一个dict，格式为 { userID : 实际发生事务的物品 }
+        @param recommends:   { userID : recommended items  }
+        @param tests:  test set: { userID : true items  }
         @return: Recall
     """
     n_union = 0.
@@ -54,9 +57,8 @@ def recall(recommends, tests):
 
 def coverage(recommends, all_items):
     """
-        计算覆盖率
-        @param recommends : dict形式 { userID : Items }
-        @param all_items :  所有的items，为list或set类型
+        @param recommends : dict { userID : Items }
+        @param all_items :  list/set items
     """
     recommend_items = set()
     for _, items in recommends.items():
@@ -66,12 +68,12 @@ def coverage(recommends, all_items):
 
 
 def popularity(item_popular, recommends):
-    """计算流行度
-        @param item_popular:  商品流行度　dict形式{ itemID : popularity}
-        @param recommends :  dict形式 { userID : Items }
-        @return: 平均流行度
     """
-    popularity = 0.  # 流行度
+        @param item_popular:  dict { itemID : popularity}
+        @param recommends :  dict { userID : Items }
+        @return: average popularity
+    """
+    popularity = 0.
     n = 0.
     for _, items in recommends.items():
         for item in items:
