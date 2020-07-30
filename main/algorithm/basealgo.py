@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from main.util.data import sparse_ratings
 from main.util.debug import LogUtil, Timer
-from main.util.metric import precision, recall, coverage
+from main.util.metric import precision, recall, coverage, sparsity
 from os import path
 
 
@@ -52,6 +52,8 @@ class BaseAlgo(object):
         :return:
         """
         self.rmat, self.users, self.items = sparse_ratings(origin_data)
+        spar = sparsity(self.rmat)
+        self.log.info("%d users %d items with sparsity %.2f", self.rmat.shape[0], self.rmat.shape[1], spar)
 
     def fit(self, origin_data):
         clock = Timer()

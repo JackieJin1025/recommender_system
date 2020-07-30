@@ -16,14 +16,16 @@ from main.util.movielen_reader import load_movielen_data
 
 class ALS(BaseAlgo):
     """
-    Train a matrix factorization model using Alternating Least Squares
+    Train a matrix factorization model using explicit Alternating Least Squares
     to predict empty entries in a matrix
 
-    reference: http://ethen8181.github.io/machine-learning/recsys/1_ALSWR.html
-    https://www.ethanrosenthal.com/2016/01/09/explicit-matrix-factorization-sgd-als/
-    https://math.stackexchange.com/questions/1072451/analytic-solution-for-matrix-factorization-using-alternating-least-squares
+    reference:
     https://medium.com/radon-dev/als-implicit-collaborative-filtering-5ed653ba39fe
     http://yifanhu.net/PUB/cf.pdf
+    http://ethen8181.github.io/machine-learning/recsys/1_ALSWR.html
+    https://www.ethanrosenthal.com/2016/01/09/explicit-matrix-factorization-sgd-als/
+    https://math.stackexchange.com/questions/1072451/analytic-solution-for-matrix-factorization-using-alternating-least-squares
+
     """
     def __init__(self, n_iters, n_factors, reg, *args, **kwargs):
         self.n_iters = n_iters
@@ -47,22 +49,42 @@ class ALS(BaseAlgo):
 
     def _train(self):
         self._init_latent_factor()
+
+        y_true = self.rmat.toarray()
+
         for i in range(self.n_iters):
             self.user_p = self._als_step(self.rmat, self.item_q)
             self.item_q = self._als_step(self.rmat.T, self.user_p)
             y_pred = self._predict()
-            y_true = self.rmat.toarray()
+
             mask = np.nonzero(y_true)
             err = RMSE(y_pred[mask], y_true[mask])
             if i % 5 == 0:
                 self.log.info("RMSE on iter %d : %.3f", i, err)
 
-    def _als_step(self, rmat, fixed_vecs):
-        """rmat is m x n  and fixed_vecs is n x k """
-        A = (fixed_vecs.T.dot(fixed_vecs) + np.eye(self.n_factors) * self.reg)
+    def _als_step(self, r, Y):
+        """
+        r: ratings with m x n  and Y is n x k
+
+        implicit:
+        x_u = (Y.T*Y + Y.T*(Cu - I) * Y + lambda*I)^-1 * (X.T * Cu * p(u))
+        y_i = (X.T*X + X.T*(Ci - I) * X + lambda*I)^-1 * (Y.T * Ci * p(i))
+        p(u), p(i) : preference with value in {0, 1}  p = 1 if r > 0 else 0.
+        Cu, Ci: confidence: i.e.  c = 1 + alpha * r
+
+        explicit:
+        x_u = (Y.T*Y  + lambda*I)^-1 * (X.T *  r(u))
+        y_i = (X.T*X  + lambda*I)^-1 * (Y.T *  r(i))
+        r: scores
+        """
+        r = r.toarray()
+        I = np.eye(self.n_factors)
+
+        A = Y.T.dot(Y) + I * self.reg  # k x k
         A_inv = np.linalg.inv(A)
-        solved_vecs = rmat.toarray().dot(fixed_vecs).dot(A_inv)
-        return solved_vecs
+        X = r.dot(Y).dot(A_inv)
+        return X
+
 
     def _predict(self, user=None):
 
