@@ -6,15 +6,14 @@ from sklearn.metrics import mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from main.algorithm.basealgo import BaseAlgo
-from main.util.data import get_data
+from main.util.data import get_data, load_movielen_data
 import os
 import pandas as pd
 
 from main.util.metric import RMSE
-from main.util.movielen_reader import load_movielen_data
 
 
-class ALS(BaseAlgo):
+class ExplicitALS(BaseAlgo):
     """
     Train a matrix factorization model using explicit Alternating Least Squares
     to predict empty entries in a matrix
@@ -33,7 +32,7 @@ class ALS(BaseAlgo):
         self.reg = reg
         self.user_p = None
         self.item_q = None
-        super(ALS, self).__init__(*args, **kwargs)
+        super(ExplicitALS, self).__init__(*args, **kwargs)
 
     def _init_latent_factor(self):
         """
@@ -120,10 +119,11 @@ class ALS(BaseAlgo):
 if __name__ == '__main__':
 
     ratings, users, movies = load_movielen_data()
-    als = ALS(n_factors=40, n_iters=20, reg=0.001)
+    als = ExplicitALS(n_factors=40, n_iters=20, reg=0.001)
     print(als.get_params())
     als.fit(ratings)
     user = 1
     movies = list(movies.item.astype(int))
     df = als.predict_for_user(user, movies)
     print(df)
+    print(df.describe())

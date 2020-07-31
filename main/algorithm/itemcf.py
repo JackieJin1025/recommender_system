@@ -4,11 +4,9 @@ import pickle
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from main.algorithm.basealgo import BaseAlgo
-from main.util.data import get_data
+from main.util.data import get_data, load_movielen_data
 import os
 import pandas as pd
-
-from main.util.movielen_reader import load_movielen_data
 
 
 class ItemCF(BaseAlgo):
@@ -111,3 +109,4 @@ if __name__ == '__main__':
     movies = list(movies.item.astype(int))
     df = itemcf.predict_for_user(user, movies)
     print(df)
+    print(df.describe())

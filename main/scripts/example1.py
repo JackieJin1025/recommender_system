@@ -4,10 +4,8 @@ from main.algorithm.lfm import LFM
 from main.algorithm.usercf import UserCF
 from main.algorithm.recommender import TopN
 from main.algorithm.selector import NotRatedSelector
-from main.util.data import get_data, train_test_split
+from main.util.data import get_data, train_test_split, load_movielen_data
 from main.util.debug import LogUtil
-
-from main.util.movielen_reader import load_movielen_data
 
 
 def _test_item_cf():

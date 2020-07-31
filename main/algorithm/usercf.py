@@ -13,7 +13,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from main.algorithm.basealgo import BaseAlgo
 from main.algorithm.itemcf import ItemCF
 from main.util.debug import Timer
-from main.util.movielen_reader import load_movielen_data
+from main.util.data import load_movielen_data
 
 
 class UserCF(BaseAlgo):
@@ -143,3 +143,4 @@ if __name__ == '__main__':
     movies = list(movies.item.astype(int))
     df = model.predict_for_user(user, movies)
     print(df.sort_values(ascending=False))
+    print(df.describe())

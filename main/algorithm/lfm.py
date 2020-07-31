@@ -4,7 +4,7 @@ from operator import itemgetter
 from main.algorithm.basealgo import BaseAlgo
 import numpy as np
 from main.util.debug import Timer
-from main.util.movielen_reader import load_movielen_data
+from main.util.data import load_movielen_data
 
 
 class LFM(BaseAlgo):

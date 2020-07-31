@@ -3,7 +3,7 @@ from abc import abstractmethod, ABC
 
 from main.algorithm.basealgo import BaseAlgo
 from main.algorithm.itemcf import ItemCF
-from main.util.movielen_reader import load_movielen_data
+from main.util.data import load_movielen_data
 
 
 class TopN(BaseAlgo, ABC):
