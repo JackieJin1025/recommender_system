@@ -46,7 +46,7 @@ class BaseAlgo(object):
 
         return params
 
-    def init_data(self, origin_data):
+    def process_data(self, origin_data):
         """
         :param origin_data: dataframe 'user', 'item', 'rating'
         :return:
@@ -57,7 +57,7 @@ class BaseAlgo(object):
 
     def fit(self, origin_data):
         clock = Timer()
-        self.init_data(origin_data)
+        self.process_data(origin_data)
         e0 = clock.restart()
         self.log.info('loading init data takes %.3f ...', e0)
         flag = self.filename is not None

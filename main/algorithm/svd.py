@@ -41,7 +41,7 @@ class BiasedSVD(BaseAlgo):
             self.bias.fit(origin_data)
 
         clock = Timer()
-        self.init_data(origin_data)
+        self.process_data(origin_data)
         e0 = clock.restart()
         self.log.info('loading init data takes %.3f ...', e0)
         flag = self.filename is not None
