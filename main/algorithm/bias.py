@@ -1,11 +1,11 @@
-from main.algorithm.basealgo import BaseAlgo
+from main.algorithm.basic import Predictor
 import numpy as np
 import pandas as pd
 
 from main.util.data import load_movielen_data
 
 
-class Bias(BaseAlgo):
+class Bias(Predictor):
 
     def __init__(self,  *args, **kwargs):
         self.user_offset = None

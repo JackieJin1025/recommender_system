@@ -5,7 +5,7 @@ import pickle
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-from main.algorithm.basealgo import BaseAlgo
+from main.algorithm.basic import Predictor
 from main.util.data import get_data, load_movielen_data
 import os
 import pandas as pd
@@ -13,7 +13,7 @@ import pandas as pd
 from main.util.metric import RMSE
 
 
-class ExplicitALS(BaseAlgo):
+class ExplicitALS(Predictor):
     """
     Train a matrix factorization model using explicit Alternating Least Squares
     to predict empty entries in a matrix
