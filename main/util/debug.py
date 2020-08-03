@@ -24,14 +24,13 @@ class Timer(object):
 
 class LogUtil:
     __LOG__ = dict()
+    CONFIGED = False
 
     @classmethod
     def getLogger(cls, name):
         if name in LogUtil.__LOG__:
             log = LogUtil.__LOG__.get(name)
             return log
-        # configure root logger
-        logging.basicConfig(level=logging.DEBUG, handlers=[])
 
         # config logger
         logger = logging.getLogger(name)
@@ -42,6 +41,21 @@ class LogUtil:
         logger.addHandler(ch)
         LogUtil.__LOG__[name] = logger
         return logger
+
+    @classmethod
+    def config(cls, **kwargs):
+        if LogUtil.CONFIGED:
+            return
+
+        # configure root logger
+        if 'level' not in kwargs:
+            kwargs['level'] =logging.INFO
+        if 'handlers' not in kwargs:
+            kwargs['handlers'] = []
+
+        logging.basicConfig(**kwargs)
+        LogUtil.CONFIGED = True
+
 
 
 def timer(text=''):
@@ -75,7 +89,7 @@ def timer(text=''):
     return decorator
 
 
-if __name__ == '__main__':
+def _run_timer():
     t = Timer()
     t0 = time.time()
     time.sleep(1.0)
@@ -83,3 +97,14 @@ if __name__ == '__main__':
     e0 = t.restart()
     e1 = t1 - t0
     print(e0, e1)
+
+
+def _run_logUtil():
+    LogUtil.config(level=logging.INFO)
+    log = LogUtil.getLogger("abc")
+
+    log.info("hello word")
+
+
+if __name__ == '__main__':
+    _run_logUtil()
