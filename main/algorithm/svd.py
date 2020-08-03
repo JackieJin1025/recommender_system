@@ -5,7 +5,7 @@ from sys import path
 
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-from main.algorithm.basealgo import BaseAlgo
+from main.algorithm.basic import Predictor
 from main.algorithm.bias import Bias
 from main.util.data import get_data, load_movielen_data
 import os
@@ -16,7 +16,7 @@ from sklearn.decomposition import TruncatedSVD
 from main.util.debug import Timer
 
 
-class BiasedSVD(BaseAlgo):
+class BiasedSVD(Predictor):
 
     """
         Biased matrix factorization for implicit feedback using SciKit-Learn's SVD
@@ -88,7 +88,7 @@ class BiasedSVD(BaseAlgo):
         invalid_items = items[item_idx == -1]
         df = pd.Series(data=np.NAN, index=invalid_items)
         item_idx = item_idx[item_idx >= 0]
-        items = items[item_idx]
+        items = self.items[item_idx]
         pred = pred[item_idx]
         df = df.append(pd.Series(data=pred, index=items))
         return df

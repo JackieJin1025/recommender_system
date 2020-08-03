@@ -1,8 +1,8 @@
 from main.algorithm.aggregator import EqualAggregator
-from main.algorithm.basealgo import BaseAlgo
+from main.algorithm.basic import Predictor
 
 
-class CombinedCF(BaseAlgo):
+class CombinedCF(Predictor):
     def __init__(self, predictors, aggregator=None, *args, **kwargs):
         self.predictors = predictors
         if aggregator is None:

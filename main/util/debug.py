@@ -1,5 +1,7 @@
 import logging
 import time
+from functools import wraps
+
 
 class Timer(object):
     get_time = time.perf_counter
@@ -42,6 +44,35 @@ class LogUtil:
         return logger
 
 
+def timer(text=''):
+    """Decorator, prints execution time of the function decorated.
+    Args:
+        text (string): text to print before time display.
+    Examples:
+        >>> @timer(text="Greetings took ")
+        ... def say_hi():
+        ...    time.sleep(1)
+        ...    print("Hey! What's up!")
+        ...
+        >>> say_hi()
+        Hey! What's up!
+        Greetings took 1 sec
+    """
+    def decorator(func):
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            name = func.__name__
+            log = LogUtil.getLogger(name)
+            timer = Timer()
+            result = func(*args, **kwargs)
+            e0 = timer.restart()
+            log.info(text + ' {:.3f} sec'.format(e0))
+            return result
+
+        return wrapper
+
+    return decorator
 
 
 if __name__ == '__main__':

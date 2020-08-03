@@ -3,13 +3,13 @@ from operator import itemgetter
 import pickle
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-from main.algorithm.basealgo import BaseAlgo
+from main.algorithm.basic import Predictor
 from main.util.data import get_data, load_movielen_data
 import os
 import pandas as pd
 
 
-class ItemCF(BaseAlgo):
+class ItemCF(Predictor):
 
     def __init__(self, discount_popularity=False, 
                  min_nn=1, 
@@ -48,23 +48,21 @@ class ItemCF(BaseAlgo):
         return item_sim
 
     def predict_for_user(self, user, items=None, ratings=None):
-        min_threshold = self.min_threshold
-        min_nn = self.min_nn
-        max_nn = self.max_nn
-
-        result = dict()
-        # convert rmat to array
-        rmat_array = self.rmat.toarray()
-
         if items is not None:
             items = np.array(items)
         else:
             items = self.items.values
-
         valid_mask = self.items.get_indexer(items) >= 0
 
+        min_threshold = self.min_threshold
+        min_nn = self.min_nn
+        max_nn = self.max_nn
+        result = dict()
+        # convert rmat to array
+        rmat_array = self.rmat.toarray()
+
         if np.sum(~valid_mask) > 0:
-            self.log.warning("%s are not valid" % items[~valid_mask])
+            self.log.warning("user %s: %s are not valid", user, items[~valid_mask])
             for e in items[~valid_mask]:
                 result[e] = np.nan
 
@@ -74,7 +72,7 @@ class ItemCF(BaseAlgo):
         for item in items:
             ipos = self.items.get_loc(item)
 
-            # idx with decending similarities with itself
+            # idx with descending similarities with itself
             item_idx = np.argsort(self.item_sim_matrix[ipos, :])[::-1][1:]
 
             # sim need to meet min_threshold

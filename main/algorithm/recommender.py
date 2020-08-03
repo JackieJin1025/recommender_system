@@ -1,12 +1,12 @@
 from abc import abstractmethod, ABC
 
 
-from main.algorithm.basealgo import BaseAlgo
+from main.algorithm.basic import Recommender
 from main.algorithm.itemcf import ItemCF
 from main.util.data import load_movielen_data
 
 
-class TopN(BaseAlgo, ABC):
+class TopN(Recommender):
 
     def __init__(self, predictor, selector=None):
         self.predictor = predictor

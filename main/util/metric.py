@@ -1,21 +1,34 @@
-#! /usr/bin/python3
-# coding=utf-8
-
-
 import numpy as np
+from numba import njit
 
 
 def sparsity(arr):
     return 1 - (np.sum((arr != 0)) / (arr.shape[0] * arr.shape[1]))
 
 
-
-def RMSE(pred_rating, actual_rating):
+def RMSE(pred, actual, ignore_na=True):
     """
         pred_rating: array
         actual_rating: array
     """
-    a = np.sqrt(np.mean((pred_rating - actual_rating) ** 2))
+    pred = np.array(pred)
+    actual = np.array(actual)
+    if not ignore_na:
+        m = np.nanmean(pred)
+        pred = np.where(np.isnan(pred), m, pred)
+    a = np.sqrt(np.nanmean((pred - actual) ** 2))
+
+    return a
+
+
+def MAE(pred, actual, ignore_na=True):
+    pred = np.array(pred)
+    actual = np.array(actual)
+    if not ignore_na:
+        m = np.nanmean(pred)
+        pred = np.where(np.isnan(pred), m, pred)
+    a = np.nanmean(np.abs(pred - actual))
+
     return a
 
 
@@ -80,3 +93,27 @@ def popularity(item_popular, recommends):
             popularity += np.log(1. + item_popular.get(item, 0.))
             n += 1
     return popularity / n
+
+
+def _evaluate(actual, pu, qi, bu=None, bi=None, global_mean=None):
+    """
+    :param actual: ratings m x n
+    :param pu: user latent factor m x k
+    :param qi: item latent factor n x k
+    :param bu: user_offsets: m x 1
+    :param bi: item_offsets: n x 1
+    :param global_mean: int
+    :return:
+    """
+    mask = actual != 0
+    pred = pu.dot(qi.T)
+    if bu is not None:
+        pred += bu.reshape(-1, 1)
+    if bi is not None:
+        pred += bi.reshape(1, -1)
+    if global_mean is not None:
+        pred += global_mean
+    pred, actual = pred[mask], actual[mask]
+    mae = MAE(pred, actual)
+    rmse = RMSE(pred, actual)
+    return rmse, mae

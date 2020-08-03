@@ -1,13 +1,14 @@
 import pickle
 import random
 from operator import itemgetter
-from main.algorithm.basealgo import BaseAlgo
+from main.algorithm.basic import Predictor
 import numpy as np
 from main.util.debug import Timer
 from main.util.data import load_movielen_data
+from main.util.metric import _evaluate
 
 
-class LFM(BaseAlgo):
+class LFM(Predictor):
     """
         latent factor model
     """
@@ -34,7 +35,7 @@ class LFM(BaseAlgo):
         m = len(self.users)
         n = len(self.items)
         # initilize latent factor matrix for users and items
-        self.user_p = np.random.normal(size=(m,k))
+        self.user_p = np.random.normal(size=(m, k))
         self.item_q = np.random.normal(size=(n, k))
 
     def select_negatives(self, user_items):
@@ -85,6 +86,7 @@ class LFM(BaseAlgo):
                     # gradient descent 
                     self.user_p[uid, :] += lr * (err * movie_latent - rr * user_latent)
                     self.item_q[iid, :] += lr * (err * user_latent - rr * movie_latent)
+
             e0 = clock.restart()
             loss = self.loss()
             e1 = clock.restart()
@@ -114,12 +116,6 @@ class LFM(BaseAlgo):
         c = np.sum(np.square(err)) + rr * np.sum(np.square(self.user_p)) + rr * np.sum(np.square(self.item_q))
         return c
 
-    def predict(self, user, item):
-        uid = self.users.get_loc(user)
-        iid = self.items.get_loc(item)
-        pre = np.dot(self.user_p[uid, :], self.item_q[iid, :])
-        # convert to sigmoid
-        return 1.0 / (1 + np.exp(-pre))
 
 
 if __name__ == '__main__':

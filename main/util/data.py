@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 from scipy.sparse import coo_matrix
-from main.util.debug import LogUtil, Timer
+from main.util.debug import LogUtil, Timer, timer
 
 
 def get_data(filename, columns, delimiter ='::'):
@@ -25,20 +25,19 @@ def get_data(filename, columns, delimiter ='::'):
     return df
 
 
-def train_test_split(ratings, frac=0.2 , group='UserID', seed=1):
+def train_test_split(ratings, frac=0.1, group='user', seed=1):
     """
         split data into train and test by frac
         if group is provide, split date into train and test by frac in each group
     """
     log = LogUtil.getLogger('train_test_split')
-    log.info("start splitting test and train data takes")
+    log.info("start splitting test and train data ...")
     clock = Timer()
     if group:
-        ratings_test = pd.DataFrame()
-        for k, v in ratings.groupby(group):
-            ratings_test = ratings_test.append(v.sample(frac=frac, random_state=seed))
+        ratings_test = ratings.groupby(group).apply(lambda x: x.sample(frac=frac, random_state=seed))
+        ratings_test.index = ratings_test.index.droplevel(group)
     else:
-        ratings_test = ratings.sample(frac=frac, random_sate=seed)
+        ratings_test = ratings.sample(frac=frac, random_state=seed)
 
     ratings_train = pd.merge(ratings, ratings_test, indicator=True, how='outer').query('_merge=="left_only"').drop(
         '_merge', axis=1)
@@ -106,3 +105,7 @@ if __name__ == '__main__':
     print(ratings.head())
     print(ratings.describe())
     print(users.describe())
+
+    train, test = train_test_split(ratings, frac=0.1, group='user')
+    print(train.describe())
+    print(test.describe())

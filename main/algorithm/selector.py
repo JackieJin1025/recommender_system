@@ -1,11 +1,11 @@
 from abc import ABC
 
 import numpy as np
-from main.algorithm.basealgo import BaseAlgo
+from main.algorithm.basic import Predictor
 from main.util.data import load_movielen_data
 
 
-class NotRatedSelector(BaseAlgo, ABC):
+class NotRatedSelector(Predictor, ABC):
     def __init__(self, **kwargs):
         super(NotRatedSelector, self).__init__(**kwargs)
 

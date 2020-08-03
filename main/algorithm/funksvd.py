@@ -1,26 +1,82 @@
-from main.algorithm.basealgo import BaseAlgo
+from numba import njit
+
+from main.algorithm.basic import Predictor
 import pandas as pd
 import numpy as np
 
-from main.util.data import load_movielen_data
-from main.util.fast_methods import _shuffle, _run_epoch
+from main.util.data import load_movielen_data, train_test_split
+from main.util.debug import timer
+from main.util.metric import MAE, _evaluate
 
 
-class FunkSVD(BaseAlgo):
+@njit
+def _shuffle(X):
+    np.random.shuffle(X)
+    return X
+
+
+@njit
+def _run_epoch(X, pu, qi, bu, bi, global_mean, n_factors, lr, reg):
+    """Runs an epoch, updating model weights (pu, qi, bu, bi).
+
+    Args:
+        X (numpy array): training set.
+        pu (numpy array): users latent factor matrix.
+        qi (numpy array): items latent factor matrix.
+        bu (numpy array): users biases vector.
+        bi (numpy array): items biases vector.
+        global_mean (float): ratings arithmetic mean.
+        n_factors (int): number of latent factors.
+        lr (float): learning rate.
+        reg (float): regularization factor.
+
+    Returns:
+        pu (numpy array): users latent factor matrix updated.
+        qi (numpy array): items latent factor matrix updated.
+        bu (numpy array): users biases vector updated.
+        bi (numpy array): items biases vector updated.
     """
-        simon funk SVD algorithm
+    for i in range(X.shape[0]):
+        user, item, rating = int(X[i, 0]), int(X[i, 1]), X[i, 2]
+
+        # Predict current rating
+        pred = global_mean + bu[user] + bi[item]
+
+        for factor in range(n_factors):
+            pred += pu[user, factor] * qi[item, factor]
+
+        err = rating - pred
+
+        # Update biases
+        bu[user] += lr * (err - reg * bu[user])
+        bi[item] += lr * (err - reg * bi[item])
+
+        # Update latent factors
+        for factor in range(n_factors):
+            puf = pu[user, factor]
+            qif = qi[item, factor]
+
+            pu[user, factor] += lr * (err * qif - reg * puf)
+            qi[item, factor] += lr * (err * puf - reg * qif)
+
+    return pu, qi, bu, bi
+
+
+class FunkSVD(Predictor):
+    """
+        simon funk SVD with bias term
         reference:
         http://sifter.org/simon/journal/20061211.html
         https://github.com/gbolmier/funk-svd
     """
-    def __init__(self, n_epochs, n_factors, learning_rate, reg, *args, **kwargs):
+    def __init__(self, n_epochs, n_factors, learning_rate, reg, shuffle=False, *args, **kwargs):
         self.n_epochs = n_epochs
         self.n_factors = n_factors
         self.reg = reg
         self.lr = learning_rate
         self.user_p = None
         self.item_q = None
-        self.shuffle = False
+        self.shuffle = shuffle
         super(FunkSVD, self).__init__(*args, **kwargs)
 
     def _init_data(self):
@@ -32,10 +88,10 @@ class FunkSVD(BaseAlgo):
         n = len(self.items)
 
         # initilize latent factor matrix for users and items
-        self.user_p = np.random.normal(size=(m, k))
-        self.item_q = np.random.normal(size=(n, k))
-        self.user_offsets = np.random.normal(size=m)
-        self.item_offsets = np.random.normal(size=n)
+        self.user_p = np.random.normal(0, 0.1, size=(m, k))
+        self.item_q = np.random.normal(0, 0.1, size=(n, k))
+        self.user_offsets = np.zeros(m)
+        self.item_offsets = np.zeros(n)
 
         # reconstruct dense array
         self.X = np.array([self.rmat.row, self.rmat.col, self.rmat.data]).T
@@ -66,7 +122,8 @@ class FunkSVD(BaseAlgo):
                                         self.n_factors, self.lr, self.reg)
 
             if epoch_ix % 10 == 0:
-                self.log.info('Epoch {}/{}'.format(epoch_ix + 1, self.n_epochs))
+                rmse, mae = _evaluate(self.rmat.toarray(), pu, qi, bu, bi, self.global_mean)
+                self.log.info('Epoch {}/{}, rmse {}, mae {}'.format(epoch_ix + 1, self.n_epochs, rmse, mae))
 
         self.user_p = pu
         self.item_q = qi
@@ -93,17 +150,23 @@ class FunkSVD(BaseAlgo):
         invalid_items = items[item_idx == -1]
         df = pd.Series(data=np.NAN, index=invalid_items)
         item_idx = item_idx[item_idx >= 0]
-        items = items[item_idx]
+        items = self.items[item_idx]
         pred = pred[item_idx]
         df = df.append(pd.Series(data=pred, index=items))
         return df
 
 
 if __name__ == '__main__':
-    model = FunkSVD(learning_rate=0.001, reg=0.005, n_epochs=100, n_factors=15)
+    model = FunkSVD(learning_rate=0.001, reg=0.005, n_epochs=100, n_factors=30)
     ratings, users, movies = load_movielen_data()
-    model.fit(ratings)
-    user = 1
-    movies = list(movies.item.astype(int))
-    df = model.predict_for_user(user, movies)
-    print(df.describe())
+    # model.fit(ratings)
+    # user = 1
+    # movies = list(movies.item.astype(int))
+    # df = model.predict_for_user(user, movies)
+    # print(df.describe())
+    #
+
+    training, testing = train_test_split(ratings)
+    model.fit(training)
+    print(model.eval(testing))
+
