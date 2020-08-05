@@ -3,9 +3,9 @@ import random
 from operator import itemgetter
 from main.algorithm.basic import Predictor
 import numpy as np
-from main.util.debug import Timer
-from main.util.data import load_movielen_data
-from main.util.metric import _evaluate
+from main.utils.debug import Timer
+from main.utils.data import load_movielen_data
+from main.utils.metric import _evaluate
 
 
 class LFM(Predictor):

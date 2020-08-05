@@ -2,9 +2,9 @@ import inspect
 from abc import abstractmethod
 from collections import defaultdict
 
-from main.util.data import sparse_ratings
-from main.util.debug import LogUtil, Timer, timer
-from main.util.metric import precision, recall, coverage, sparsity, RMSE, MAE
+from main.utils.data import sparse_ratings
+from main.utils.debug import LogUtil, Timer, timer
+from main.utils.metric import precision, recall, coverage, sparsity, RMSE, MAE
 from os import path
 import pandas as pd
 

@@ -4,7 +4,7 @@ import pickle
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from main.algorithm.basic import Predictor
-from main.util.data import get_data, load_movielen_data
+from main.utils.data import get_data, load_movielen_data
 import os
 import pandas as pd
 

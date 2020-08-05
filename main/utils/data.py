@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 from scipy.sparse import coo_matrix
-from main.util.debug import LogUtil, Timer, timer
+from main.utils.debug import LogUtil, Timer, timer
 
 
 def get_data(filename, columns, delimiter ='::'):

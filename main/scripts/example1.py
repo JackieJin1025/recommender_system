@@ -10,8 +10,8 @@ from main.algorithm.svd import BiasedSVD
 from main.algorithm.usercf import UserCF
 from main.algorithm.recommender import TopN
 from main.algorithm.selector import NotRatedSelector
-from main.util.data import get_data, train_test_split, load_movielen_data
-from main.util.debug import LogUtil, Timer
+from main.utils.data import get_data, train_test_split, load_movielen_data
+from main.utils.debug import LogUtil, Timer
 import numpy as np
 
 

@@ -43,7 +43,7 @@ class LogUtil:
         return logger
 
     @classmethod
-    def config(cls, **kwargs):
+    def configLog(cls, **kwargs):
         if LogUtil.CONFIGED:
             return
 
@@ -100,7 +100,7 @@ def _run_timer():
 
 
 def _run_logUtil():
-    LogUtil.config(level=logging.INFO)
+    LogUtil.configLog(level=logging.INFO)
     log = LogUtil.getLogger("abc")
 
     log.info("hello word")

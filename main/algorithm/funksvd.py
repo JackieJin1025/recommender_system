@@ -4,9 +4,9 @@ from main.algorithm.basic import Predictor
 import pandas as pd
 import numpy as np
 
-from main.util.data import load_movielen_data, train_test_split
-from main.util.debug import timer
-from main.util.metric import MAE, _evaluate
+from main.utils.data import load_movielen_data, train_test_split
+from main.utils.debug import timer
+from main.utils.metric import MAE, _evaluate
 
 
 @njit
