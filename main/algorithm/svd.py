@@ -39,23 +39,7 @@ class BiasedSVD(Predictor):
         """
         if self.bias is not None:
             self.bias.fit(origin_data)
-
-        clock = Timer()
-        self.process_data(origin_data)
-        e0 = clock.restart()
-        self.log.info('loading init data takes %.3f ...', e0)
-        flag = self.filename is not None
-        if flag and path.exists(self.filename):
-            self._load()
-            return
-
-        _ = clock.restart()
-        self.log.info('start training ...')
-        self._train()
-        e2 = clock.restart()
-        self.log.info('training takes %.3f ...', e2 )
-        if flag:
-            self._save()
+        super(BiasedSVD, self).fit(origin_data)
         return self
 
     def _train(self):
