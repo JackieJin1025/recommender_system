@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 
 from main.utils.data import load_movielen_data
+from main.utils.debug import LogUtil, timer, Timer
+from main.utils.functions import _demean
 
 
 class Bias(Predictor):
@@ -12,18 +14,28 @@ class Bias(Predictor):
         self.item_offset = None
         self.mean = None
         self.pred = None
+        self.nmat = None
         super(Bias, self).__init__(*args, **kwargs)
 
     def _train(self):
-        rmat = self.rmat.toarray()
-        rmat[rmat == 0] = np.nan
-        self.mean = np.nanmean(rmat)
-        rmat = rmat - self.mean
-        self.item_offset = np.nanmean(rmat, axis=0)
-        # make sure average rating of each item is 0
-        rmat = rmat - self.item_offset
-        self.user_offset = np.nanmean(rmat, axis=1)
+        rmat = self.rmat.tocsr()
+        self.mean = np.mean(rmat.data)
+        rmat.data = rmat.data - self.mean
+        # demean item
+        rmat = rmat.tocsc()
+        self.item_offset = _demean(rmat)
+        # demean user
+        rmat = rmat.tocsr()
+        self.user_offset = _demean(rmat)
+
         self.pred = self.user_offset.reshape(-1, 1) + self.item_offset.reshape(1, -1) + self.mean
+        self.nmat = rmat
+
+    def get_user_bias(self):
+        return self.user_offset
+
+    def get_item_bias(self):
+        return self.item_offset
 
     def predict_for_user(self, user, items=None, ratings=None):
         # convert rmat to array
@@ -47,11 +59,12 @@ class Bias(Predictor):
 
 
 if __name__ == '__main__':
+    LogUtil.configLog()
     ratings, users, movies = load_movielen_data()
     model = Bias()
-    print(model.get_params())
     model.fit(ratings)
-    user = 1
-    movies = list(movies.item.astype(int))
-    df = model.predict_for_user(user, movies)
-    print(df)
+    print(model.pred)
+    # user = 1
+    # movies = list(movies.item.astype(int))
+    # df = model.predict_for_user(user, movies)
+    # print(df)

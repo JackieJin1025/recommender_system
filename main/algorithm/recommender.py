@@ -3,7 +3,7 @@ from abc import abstractmethod, ABC
 
 from main.algorithm.basic import Recommender
 from main.algorithm.itemcf import ItemCF
-from main.util.data import load_movielen_data
+from main.utils.data import load_movielen_data
 
 
 class TopN(Recommender):

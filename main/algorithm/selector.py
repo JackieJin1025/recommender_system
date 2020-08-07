@@ -2,7 +2,7 @@ from abc import ABC
 
 import numpy as np
 from main.algorithm.basic import Predictor
-from main.util.data import load_movielen_data
+from main.utils.data import load_movielen_data
 
 
 class NotRatedSelector(Predictor, ABC):

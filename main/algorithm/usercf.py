@@ -8,25 +8,39 @@ from numba import njit
 from sklearn.metrics.pairwise import cosine_similarity
 
 from main.algorithm.basic import Predictor
+from main.algorithm.bias import Bias
 from main.algorithm.itemcf import ItemCF
-from main.util.debug import Timer
-from main.util.data import load_movielen_data
+from main.utils.accum import kvp_minheap_insert
+from main.utils.debug import Timer, LogUtil
+from main.utils.data import load_movielen_data
+from main.utils.functions import _nn_score
 from heapq import heapify, heappop, heappush
+import time
+
+from main.utils.functions import _demean, _norm
+
 
 class UserCF(Predictor):
 
-    def __init__(self, discount_popularity=False,
+    def __init__(self,
                  min_nn=1,
                  max_nn=50,
                  min_threshold=None,
+                 bias=None,
                  *args, **kwargs):
-        self.discount_popularity = discount_popularity
+
         self.user_sim_matrix = None
         self.min_nn = min_nn
         self.max_nn = max_nn
         self.min_threshold = min_threshold
+        self.bias = bias
 
         super(UserCF, self).__init__(*args, **kwargs)
+
+    def fit(self, data):
+        if self.bias is not None:
+            self.bias.fit(data)
+        super(UserCF, self).fit(data)
 
     def _train(self):
         """
@@ -55,12 +69,11 @@ class UserCF(Predictor):
         :return: user by user similarity matrix
         """
         # user by item
-        rmat = self.rmat
-        #normalize by user norm
-        rmat_array = rmat.toarray()
-        user_norm = np.linalg.norm(rmat_array, axis=1)
-        nmat = rmat_array / user_norm.reshape(-1, 1)
-        user_sim = nmat.dot(nmat.T)
+        rmat = self.rmat.tocsr(copy=True)
+        # normalize user ratings
+        _ = _demean(rmat)
+        _ = _norm(rmat)
+        user_sim = np.dot(rmat, rmat.T).toarray()
         user_sim_diag = np.diag(user_sim)
 
         epsilon = 1e-6
@@ -84,10 +97,9 @@ class UserCF(Predictor):
         min_threshold = self.min_threshold
         min_nn = self.min_nn
         max_nn = self.max_nn
+        user_sim = self.user_sim_matrix
 
         result = dict()
-        # convert rmat to array
-        rmat_array = self.rmat.toarray()
         if items is not None:
             items = np.array(items)
         else:
@@ -100,36 +112,39 @@ class UserCF(Predictor):
                 result[e] = np.nan
 
         items = items[valid_mask]
-
         upos = self.users.get_loc(user)
+
         # idx with decending similarities with itself
-        full_user_idx = np.argsort(self.user_sim_matrix[upos, :])[::-1]
+        full_user_idx = np.argsort(user_sim[upos, :])[::-1]
 
         if False:
-            min_sim = self.user_sim_matrix[upos, full_user_idx].min()
-            max_sim = self.user_sim_matrix[upos, full_user_idx].max()
+            min_sim = user_sim[upos, full_user_idx].min()
+            max_sim = user_sim[upos, full_user_idx].max()
             self.log.info("max similarity and min similarity are %.3f and %.3f", max_sim, min_sim)
 
         # sim need to meet min_threshold
         if min_threshold is not None:
-            full_user_idx = full_user_idx[self.user_sim_matrix[upos, full_user_idx] > min_threshold]
+            full_user_idx = full_user_idx[user_sim[upos, full_user_idx] > min_threshold]
 
+        # convert rmat to array
+        rmat_array = self.rmat.toarray()
+        u_bias = None
+        if self.bias is not None:
+            u_bias = self.bias.get_user_bias()
+
+        print(len(items))
         for item in items:
             ipos = self.items.get_loc(item)
-
             # narrow down to users who rated the item
             user_idx = full_user_idx[rmat_array[full_user_idx, ipos] != 0]
+            user_scores = rmat_array[:, ipos]
+            # user_idx = full_user_idx[user_scores[full_user_idx] != 0]
             user_idx = user_idx[:max_nn]
             if len(user_idx) < min_nn:
                 self.log.debug("user %s does not have enough neighbors (%s < %s)", user, len(user_idx), min_nn)
                 result[item] = np.nan
-            ratings= rmat_array[user_idx, ipos]
-            sim_wt = self.user_sim_matrix[upos, user_idx]
-            if sim_wt.sum() <= 0:
-                result[item] = np.nan
-                continue
-            rating = ratings.dot(sim_wt) / sim_wt.sum()
-            result[item] = rating
+
+            result[item] = _nn_score(user_scores, user_sim, upos, user_idx, u_bias)
 
         df = pd.Series(result)
         return df
@@ -143,23 +158,31 @@ class UserCF(Predictor):
         :param ratings:
         :return:
         """
+
         min_threshold = self.min_threshold
         min_nn = self.min_nn
         max_nn = self.max_nn
-        rmat_array = self.rmat.toarray()
+        clock = Timer()
+        rmat_c = self.rmat.tocsc()
+        e0 = clock.restart()
         if items is not None:
             items = np.array(items)
         else:
             items = self.items.values
-
+        e1 = clock.restart()
         items_idx = self.items.get_indexer(items)
+        e2 = clock.restart()
         upos = self.users.get_loc(user)
+        e3 = clock.restart()
         usims = self.user_sim_matrix[upos, :]
+        e4 = clock.restart()
+        result = _score(rmat_c, usims, items_idx, min_threshold, min_nn, max_nn)
+        e5 = clock.restart()
+        # print(e0, e1, e2, e3, e4, e5)
 
-        result = _score(rmat_array, usims, items_idx, min_threshold, min_nn, max_nn)
         return pd.Series(result, index=items)
 
-@njit
+
 def _score(rmat_array, usims, items_idx, min_threshold, min_nn, max_nn):
     """
     :param rmat_array: rating matrix, m x n where m is the number of users, n is the number of items
@@ -172,64 +195,118 @@ def _score(rmat_array, usims, items_idx, min_threshold, min_nn, max_nn):
     """
 
     result = np.full(len(items_idx), np.nan, dtype=np.float32)
-    u_mask = np.full(len(usims), 1, dtype=np.bool_)
-    rmat_t = rmat_array.T
-    if min_threshold is not None:
-        u_mask = usims >= min_threshold
-
+    if min_threshold is None:
+        min_threshold = 0
     for i, item_idx in enumerate(items_idx):
         if item_idx < 0:
             continue
-        ratings = rmat_t[item_idx, :]
+        ratings = rmat_array[:, item_idx]
         # only for users who have ratings
-        mask = ratings != 0
-        if min_threshold is not None:
-            mask = np.bitwise_and(mask.astype(np.bool_), u_mask.astype(np.bool_))
+        valid_idx = ratings.indices
 
-        cnt = 0
-        for j in range(len(mask)):
-            if mask[j]:
-                cnt += 1
-        if cnt < min_nn:
+        ratings = ratings.data
+        valid_usims = usims[valid_idx]
+
+        heap = [(-valid_usims[0], 0)]
+
+        for j, sim in enumerate(valid_usims, 1):
+            if sim < min_threshold:
+                continue
+            heappush(heap, (-sim, j))
+
+        if len(heap) < min_nn:
             continue
 
-        # ratings = ratings[mask]
-        # valid_usims = usims[mask]
-        #
-        # heap = [(-valid_usims[0], 0)]
-        # for j, sim in enumerate(valid_usims, 1):
-        #     heappush(heap, (-sim, j))
-        #
-        # numerator = 0.0
-        # denominator = 0.0
-        # while len(heap) > 0 and max_nn > 0:
-        #     sim, j = heappop(heap)
-        #     sim = -sim
-        #     numerator += ratings[j] * sim
-        #     denominator += sim
-        #     max_nn -= 1
-        # if denominator <= 0:
-        #     continue
-        # score = numerator / denominator
-        # result[i] = score
-
-        ratings = ratings[mask]
-        valid_usims = usims[mask]
-        sorted_uidx = np.argsort(valid_usims)[::-1]
-        sorted_uidx = sorted_uidx[:max_nn]
-        ratings = ratings[sorted_uidx]
-        valid_usims = valid_usims[sorted_uidx]
-        if valid_usims.sum() <= 0:
+        numerator = 0.0
+        denominator = 0.0
+        while len(heap) > 0 and max_nn > 0:
+            sim, j = heappop(heap)
+            sim = -sim
+            numerator += ratings[j] * sim
+            denominator += sim
+            max_nn -= 1
+        if denominator <= 0:
             continue
-        score = ratings.dot(valid_usims) / valid_usims.sum()
+        score = numerator / denominator
         result[i] = score
+
+        # ratings = ratings.data
+        # valid_usims = usims[valid_idx]
+        # sorted_uidx = np.argsort(valid_usims)[::-1]
+        # sorted_uidx = sorted_uidx[:max_nn]
+        # ratings = ratings[sorted_uidx]
+        # valid_usims = valid_usims[sorted_uidx]
+        # if valid_usims.sum() <= 0:
+        #     continue
+        # score = ratings.dot(valid_usims) / valid_usims.sum()
+        # result[i] = score
 
     return result
 
 
+@njit
+def _agg_weighted_avg(iur, item, sims, use):
+    """
+    Weighted-average aggregate.
+
+    Args:
+        iur(matrix._CSR): the item-user ratings matrix
+        item(int): the item index in ``iur``
+        sims(numpy.ndarray): the similarities for the users who have rated ``item``
+        use(numpy.ndarray): positions in sims and the rating row to actually use
+    """
+    rates = iur[item, :]
+    num = 0.0
+    den = 0.0
+    for j in use:
+        num += rates[j] * sims[j]
+        den += np.abs(sims[j])
+    return num / den
+
+
+@njit
+def _score2(iur,  sims, items, min_sim, nnbrs, min_nbrs):
+    iur = iur.T
+    results = np.full(len(items), np.nan, dtype=np.float32)
+    h_ks = np.empty(nnbrs, dtype=np.int32)
+    h_vs = np.empty(nnbrs)
+    used = np.zeros(len(results), dtype=np.int32)
+
+    for i in range(len(results)):
+        item = items[i]
+        if item < 0:
+            continue
+
+        h_ep = 0
+
+        # who has rated this item?
+        i_users = iur[item, :] != 0
+
+        # what are their similarities to our target user?
+        i_sims = sims[i_users]
+
+        # which of these neighbors do we really want to use?
+        for j, s in enumerate(i_sims):
+            if np.abs(s) < 1.0e-10:
+                continue
+            if min_sim is not None and s < min_sim:
+                continue
+            h_ep = kvp_minheap_insert(0, h_ep, nnbrs, j, s, h_ks, h_vs)
+
+        if h_ep < min_nbrs:
+            continue
+
+        results[i] = _agg_weighted_avg(iur, item, i_sims, h_ks[:h_ep])
+        used[i] = h_ep
+
+    return used
+
+
 if __name__ == '__main__':
+    LogUtil.configLog()
     ratings, users, movies = load_movielen_data()
-    model = UserCF(min_threshold=0.1, min_nn=5)
+    bias = Bias()
+    model = UserCF(min_threshold=0.1, min_nn=5, bias=bias)
     print(model.get_params())
     model.fit(ratings)
     user = 1
@@ -244,13 +321,13 @@ if __name__ == '__main__':
     for _ in range(5):
         df2 = model.predict_for_user_numba(user, movies)
         print(clock.restart())
-
-    print(df.sort_values(ascending=False).head(5))
-    print(df2.sort_values(ascending=False).head(5))
-    print(df.describe())
-    print(df2.describe())
-
-    df_s = pd.DataFrame({'old': df,
-                         'new': df2})
-
-    print(df_s[df_s.old != df_s.new])
+    #
+    # print(df.sort_values(ascending=False).head(5))
+    # print(df2.sort_values(ascending=False).head(5))
+    # print(df.describe())
+    # print(df2.describe())
+    #
+    # df_s = pd.DataFrame({'old': df,
+    #                      'new': df2})
+    #
+    # print(df_s[df_s.old != df_s.new])

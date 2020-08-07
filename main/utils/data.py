@@ -80,6 +80,53 @@ def sparse_ratings(ratings, users=None, items=None):
     return matrix, users, items
 
 
+def batcher(X, y=None, w=None, batch_size=-1):
+    """Split data to mini-batches.
+
+    Parameters
+    ----------
+    X : {numpy.array, scipy.sparse.csr_matrix}, shape (n_samples, n_features)
+        Training vector, where n_samples in the number of samples and
+        n_features is the number of features.
+
+    y : np.array or None, shape (n_samples,)
+        Target vector relative to X.
+
+    w : np.array or None, shape (n_samples,)
+        Vector of sample weights.
+
+    batch_size : int
+        Size of batches.
+        Use -1 for full-size batches
+
+    Yields
+    -------
+    ret_x : {numpy.array, scipy.sparse.csr_matrix}, shape (batch_size, n_features)
+        Same type as input
+
+    ret_y : np.array or None, shape (batch_size,)
+
+    ret_w : np.array or None, shape (batch_size,)
+    """
+    n_samples = X.shape[0]
+
+    if batch_size == -1:
+        batch_size = n_samples
+    if batch_size < 1:
+       raise ValueError('Parameter batch_size={} is unsupported'.format(batch_size))
+
+    for i in range(0, n_samples, batch_size):
+        upper_bound = min(i + batch_size, n_samples)
+        ret_x = X[i:upper_bound]
+        ret_y = None
+        ret_w = None
+        if y is not None:
+            ret_y = y[i:i + batch_size]
+        if w is not None:
+            ret_w = w[i:i + batch_size]
+        yield ret_x, ret_y, ret_w
+
+
 def load_movielen_data():
     """
     :return: a tuple with three dataframes: ratings, users, movies
