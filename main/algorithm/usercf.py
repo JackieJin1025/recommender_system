@@ -10,7 +10,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 from main.algorithm.basic import Predictor
 from main.algorithm.bias import Bias
 from main.algorithm.itemcf import ItemCF
-from main.utils.accum import kvp_minheap_insert
 from main.utils.debug import Timer, LogUtil
 from main.utils.data import load_movielen_data
 from main.utils.functions import _nn_score
@@ -41,12 +40,14 @@ class UserCF(Predictor):
         if self.bias is not None:
             self.bias.fit(data)
         super(UserCF, self).fit(data)
+        return self
 
     def _train(self):
         """
             train model
         """
         self.user_sim_matrix = self.user_similarity()
+        # self.rmat_array =
 
     def _save(self):
         c = Timer()
@@ -132,13 +133,11 @@ class UserCF(Predictor):
         if self.bias is not None:
             u_bias = self.bias.get_user_bias()
 
-        print(len(items))
         for item in items:
             ipos = self.items.get_loc(item)
             # narrow down to users who rated the item
             user_idx = full_user_idx[rmat_array[full_user_idx, ipos] != 0]
             user_scores = rmat_array[:, ipos]
-            # user_idx = full_user_idx[user_scores[full_user_idx] != 0]
             user_idx = user_idx[:max_nn]
             if len(user_idx) < min_nn:
                 self.log.debug("user %s does not have enough neighbors (%s < %s)", user, len(user_idx), min_nn)
@@ -264,42 +263,6 @@ def _agg_weighted_avg(iur, item, sims, use):
     return num / den
 
 
-@njit
-def _score2(iur,  sims, items, min_sim, nnbrs, min_nbrs):
-    iur = iur.T
-    results = np.full(len(items), np.nan, dtype=np.float32)
-    h_ks = np.empty(nnbrs, dtype=np.int32)
-    h_vs = np.empty(nnbrs)
-    used = np.zeros(len(results), dtype=np.int32)
-
-    for i in range(len(results)):
-        item = items[i]
-        if item < 0:
-            continue
-
-        h_ep = 0
-
-        # who has rated this item?
-        i_users = iur[item, :] != 0
-
-        # what are their similarities to our target user?
-        i_sims = sims[i_users]
-
-        # which of these neighbors do we really want to use?
-        for j, s in enumerate(i_sims):
-            if np.abs(s) < 1.0e-10:
-                continue
-            if min_sim is not None and s < min_sim:
-                continue
-            h_ep = kvp_minheap_insert(0, h_ep, nnbrs, j, s, h_ks, h_vs)
-
-        if h_ep < min_nbrs:
-            continue
-
-        results[i] = _agg_weighted_avg(iur, item, i_sims, h_ks[:h_ep])
-        used[i] = h_ep
-
-    return used
 
 
 if __name__ == '__main__':

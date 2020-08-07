@@ -23,10 +23,10 @@ class ItemCF(Predictor):
                  min_threshold=None,
                  bias = None,
                  *args, **kwargs):
-        self.bias = bias
         self.min_nn = min_nn 
         self.max_nn = max_nn 
         self.min_threshold = min_threshold
+        self.bias = bias
 
         self.item_sim_matrix = None
         super(ItemCF, self).__init__(*args, **kwargs)
@@ -35,6 +35,7 @@ class ItemCF(Predictor):
         if self.bias is not None:
             self.bias.fit(data)
         super(ItemCF, self).fit(data)
+        return self
 
     def _train(self):
         self.item_sim_matrix = self.item_similarity()
@@ -71,9 +72,6 @@ class ItemCF(Predictor):
         max_nn = self.max_nn
         item_sim = self.item_sim_matrix
         result = dict()
-        # convert rmat to array
-        rmat_array = self.rmat.toarray()
-
         if np.sum(~valid_mask) > 0:
             self.log.debug("user %s: %s are not valid", user, items[~valid_mask])
             for e in items[~valid_mask]:
@@ -85,13 +83,16 @@ class ItemCF(Predictor):
         if self.bias is not None:
             item_bias = self.bias.get_item_bias()
 
+        item_scores = self.rmat[upos, :].toarray().flatten()
+        # narrow down to items were rated
+        valid_item_index = np.argwhere(item_scores != 0)
         for item in items:
             ipos = self.items.get_loc(item)
 
-            # idx with descending similarities with itself
             clock = Timer()
-            item_idx = np.argsort(item_sim[ipos, :])[::-1]
-            #item_idx = bottleneck.argpartition(item_sim[ipos, :], 3000)
+            # idx with descending similarities with itself
+            sorted_idx = np.argsort(item_sim[ipos, valid_item_index])[::-1]
+            item_idx = valid_item_index[sorted_idx]
             e0 = clock.restart()
 
             # sim need to meet min_threshold
@@ -102,15 +103,12 @@ class ItemCF(Predictor):
                 result[item] = np.nan
                 continue
 
-            # narrow down to items were rated
-            item_idx = item_idx[rmat_array[upos, item_idx] != 0]
             item_idx = item_idx[:max_nn]
-            item_scores = rmat_array[upos, :]
             e1 = clock.restart()
-            rating = _nn_score(item_scores, item_sim, ipos, item_idx, item_bias)
+            score = _nn_score(item_scores, item_sim, ipos, item_idx, item_bias)
             e2 = clock.restart()
             # print(e0, e1, e2)
-            result[item] = rating
+            result[item] = score
 
         df = pd.Series(result)
         return df

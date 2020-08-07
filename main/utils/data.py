@@ -77,6 +77,7 @@ def sparse_ratings(ratings, users=None, items=None):
         vals = None
 
     matrix = coo_matrix((vals, (row_ind, col_ind)), shape= (len(users), len(items)))
+    matrix = matrix.tocsr()
     return matrix, users, items
 
 

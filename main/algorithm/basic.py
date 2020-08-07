@@ -1,7 +1,7 @@
 import inspect
 from abc import abstractmethod
 from collections import defaultdict
-
+from tqdm import tqdm
 from main.utils.data import sparse_ratings
 from main.utils.debug import LogUtil, Timer, timer
 from main.utils.metric import precision, recall, coverage, sparsity, RMSE, MAE
@@ -94,7 +94,6 @@ class Predictor(BaseAlgo):
     def _save(self):
         pass
 
-
     def eval(self, x_val):
         """
         evaluate test data with RMSE and MAE
@@ -105,7 +104,7 @@ class Predictor(BaseAlgo):
         self.log.info("start evaluating with %d test samples ...", x_val.shape[0])
         group = x_val.groupby('user')
         df_summary = pd.DataFrame()
-        for user, df in group:
+        for user, df in tqdm(group):
             actual = df[['item', 'rating']].set_index('item')['rating']
             pred = self.predict_for_user(user, items=actual.index)
             df_summary = df_summary.append(pd.DataFrame({'pred': pred,
@@ -117,8 +116,6 @@ class Predictor(BaseAlgo):
         self.log.info("rmse: %.3f, mae: %.3f", rmse, mae)
         self.log.info("evaluation takes %.3f", e0)
         return rmse, mae
-
-
 
     def test(self, N, K, test_df):
         """
@@ -150,7 +147,6 @@ class Predictor(BaseAlgo):
         self.log.info("precision: %.3f", prec)
         self.log.info("recall: %.3f", rec)
         self.log.info("coverage: %.3f", cov)
-
 
 class Recommender(BaseAlgo):
 

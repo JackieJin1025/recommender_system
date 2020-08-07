@@ -6,6 +6,7 @@ import numpy as np
 
 from main.utils.data import load_movielen_data, train_test_split
 from main.utils.debug import timer
+from main.utils.functions import scores_to_series
 from main.utils.metric import MAE, _evaluate
 
 
@@ -94,7 +95,8 @@ class FunkSVD(Predictor):
         self.item_offsets = np.zeros(n)
 
         # reconstruct dense array
-        self.X = np.array([self.rmat.row, self.rmat.col, self.rmat.data]).T
+        rmat = self.rmat.tocoo()
+        self.X = np.array([rmat.row, rmat.col, rmat.data]).T
         self.global_mean = np.mean(self.X[:, 2])
 
     def _train(self):
@@ -144,15 +146,7 @@ class FunkSVD(Predictor):
         pred += self.global_mean
         pred += u_mean
         pred += self.item_offsets
-
-        # mark items not in the model universe as np.nan
-        item_idx = self.items.get_indexer(items)
-        invalid_items = items[item_idx == -1]
-        df = pd.Series(data=np.NAN, index=invalid_items)
-        item_idx = item_idx[item_idx >= 0]
-        items = self.items[item_idx]
-        pred = pred[item_idx]
-        df = df.append(pd.Series(data=pred, index=items))
+        df = scores_to_series(pred, self.items, items)
         return df
 
 

@@ -13,7 +13,8 @@ import pandas as pd
 
 from sklearn.decomposition import TruncatedSVD
 
-from main.utils.debug import Timer
+from main.utils.debug import Timer, LogUtil
+from main.utils.functions import scores_to_series
 
 
 class BiasedSVD(Predictor):
@@ -24,7 +25,7 @@ class BiasedSVD(Predictor):
         computing the bias, then computing the SVD of the bias residuals.
     """
 
-    def __init__(self, n_iter, n_factor, bias=None, *args, **kwargs):
+    def __init__(self, n_iter, n_factor=30, bias=Bias(), *args, **kwargs):
         self.n_iter = n_iter
         self.n_factor = n_factor
         self.user_components = None
@@ -43,42 +44,40 @@ class BiasedSVD(Predictor):
         return self
 
     def _train(self):
-        rmat = self.rmat.toarray()
+        rmat = self.rmat
         if self.bias is not None:
-            bias_pred = self.bias.pred
-            rmat = rmat - bias_pred
+            rmat = self.bias.get_unbiased_rmat()
 
+        rmat = rmat.toarray()
         # U, Sigma, VT = svd(rmat) ==> user_components = U.dot(Sigma)
         self.user_components = self.svd.fit_transform(rmat)
 
     def predict_for_user(self, user, items=None, ratings=None):
-        # convert rmat to array
         if items is not None:
             items = np.array(items)
         else:
             items = self.items.values
-
+        clock = Timer()
         uidx = self.users.get_loc(user)
         Xt = self.user_components[[uidx], :]
         # Transform Xt back to its original space. Xt.dot(Vt)
         pred = self.svd.inverse_transform(Xt)
+        e0 = clock.restart()
         pred = pred.flatten()
-
+        e1 = clock.restart()
+        df = scores_to_series(pred, self.items, items)
+        e2 = clock.restart()
         if self.bias is not None:
-            pred += self.bias.pred[uidx, :]
-
-        # mark items not in the model universe as np.nan
-        item_idx = self.items.get_indexer(items)
-        invalid_items = items[item_idx == -1]
-        df = pd.Series(data=np.NAN, index=invalid_items)
-        item_idx = item_idx[item_idx >= 0]
-        items = self.items[item_idx]
-        pred = pred[item_idx]
-        df = df.append(pd.Series(data=pred, index=items))
+            bias_scores = self.bias.predict_for_user(user, items)
+            df += bias_scores
+        e3 = clock.restart()
+        # print(e0, e1, e2, e3)
         return df
 
 
 if __name__ == '__main__':
+
+    LogUtil.configLog()
 
     ratings, users, movies = load_movielen_data()
     bias = Bias()
@@ -87,16 +86,9 @@ if __name__ == '__main__':
     model.fit(ratings)
     user = 1
     movies = list(movies.item.astype(int))
-    df = model.predict_for_user(user, movies)
-    print(df.describe())
+    clock = Timer()
+    for i in range(10):
+        df = model.predict_for_user(user, movies)
+        # print(clock.restart())
 
-"""
-count    3706.000000
-mean        0.059754
-std         0.266182
-min        -0.512490
-25%        -0.028333
-50%         0.003629
-75%         0.044354
-max         3.059997
-"""
+    print(df.describe())
