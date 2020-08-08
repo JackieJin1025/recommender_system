@@ -74,8 +74,8 @@ def _testBiasedSVD():
 
 if __name__ == '__main__':
     LogUtil.configLog()
-    # _test_user_cf()
-    # _testItemCF()
+    # _testUserCF()
+    _testItemCF()
     # _testFunkSVD()
     # _testBiasedSVD()
-    _testExplictALS()
+    # _testExplictALS()
