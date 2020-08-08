@@ -54,6 +54,30 @@ def _norm(sparse):
     return norms
 
 
+def _get_xs(sparse, ipos):
+    """
+    get a column/row from csc/csr
+    :param sparse: csc or csr. if csc, get ipos-th col. Otherwise, get ipos-th row
+    :param ipos:
+    :return:
+    """
+    # number of rows
+    n = sparse.shape[0]
+    if sparse.getformat() == 'csr':
+        # number of cols
+        n = sparse.shape[1]
+
+    result = np.zeros(n)
+    sp, ep = sparse.indptr[ipos], sparse.indptr[ipos+1]
+    data = sparse.data[sp:ep]
+    idx = sparse.indices[sp:ep]
+    result[idx] = data
+    return result
+
+
+
+
+
 @njit
 def _nn_score(scores, sim_matrix, idx, nb_idx, bias=None):
     """

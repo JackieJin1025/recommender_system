@@ -12,7 +12,7 @@ from main.algorithm.bias import Bias
 from main.algorithm.itemcf import ItemCF
 from main.utils.debug import Timer, LogUtil
 from main.utils.data import load_movielen_data
-from main.utils.functions import _nn_score
+from main.utils.functions import _nn_score, _get_xs
 from heapq import heapify, heappop, heappush
 import time
 
@@ -84,6 +84,8 @@ class UserCF(Predictor):
         if len(idx) > 0:
             self.log.warning("diagonals of similarity matrix (%s) = %s, Is this expected? ", idx, user_sim_diag[idx])
 
+        # conver to csc
+        self.rmat = self.rmat.tocsc()
         return user_sim
 
     def predict_for_user(self, user, items=None, ratings=None):
@@ -116,8 +118,8 @@ class UserCF(Predictor):
         upos = self.users.get_loc(user)
 
         # idx with decending similarities with itself
-        full_user_idx = np.argsort(user_sim[upos, :])[::-1]
 
+        full_user_idx = np.argsort(user_sim[upos, :])[::-1]
         if False:
             min_sim = user_sim[upos, full_user_idx].min()
             max_sim = user_sim[upos, full_user_idx].max()
@@ -128,16 +130,21 @@ class UserCF(Predictor):
             full_user_idx = full_user_idx[user_sim[upos, full_user_idx] > min_threshold]
 
         # convert rmat to array
-        rmat_array = self.rmat.toarray()
+        # clock = Timer()
+        # rmat_array = self.rmat.toarray()
+        # print("XXX", clock.restart())
         u_bias = None
         if self.bias is not None:
             u_bias = self.bias.get_user_bias()
 
         for item in items:
             ipos = self.items.get_loc(item)
+            assert self.rmat.getformat() == 'csc'
+            user_scores = _get_xs(self.rmat, ipos)
             # narrow down to users who rated the item
-            user_idx = full_user_idx[rmat_array[full_user_idx, ipos] != 0]
-            user_scores = rmat_array[:, ipos]
+            user_idx = full_user_idx[user_scores[full_user_idx] != 0]
+            # user_idx = full_user_idx[rmat_array[full_user_idx, ipos] != 0]
+            # user_scores = rmat_array[:, ipos]
             user_idx = user_idx[:max_nn]
             if len(user_idx) < min_nn:
                 self.log.debug("user %s does not have enough neighbors (%s < %s)", user, len(user_idx), min_nn)

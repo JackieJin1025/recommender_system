@@ -12,7 +12,7 @@ import os
 import pandas as pd
 
 from main.utils.debug import LogUtil, Timer
-from main.utils.functions import _demean, _norm, _nn_score
+from main.utils.functions import _demean, _norm, _nn_score, _get_xs
 
 
 class ItemCF(Predictor):
@@ -83,7 +83,8 @@ class ItemCF(Predictor):
         if self.bias is not None:
             item_bias = self.bias.get_item_bias()
 
-        item_scores = self.rmat[upos, :].toarray().flatten()
+        assert self.rmat.getformat() == 'csr'
+        item_scores = _get_xs(self.rmat, upos)
         # narrow down to items were rated
         valid_item_index = np.argwhere(item_scores != 0)
         for item in items:
