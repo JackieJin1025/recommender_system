@@ -17,8 +17,15 @@ class TopN(Recommender):
         if self.selector is not None:
             self.selector.fit(data, **kwargs)
 
-    def recommend(self, user, n=None, candidates=None, ratings=None):
+    def recommend(self, user, n=None, candidates=None, mapping=None):
+        """
 
+        :param user: user_id
+        :param n: number of items
+        :param candidates: potential items to be recommended
+        :param mapping: is a dataframe with index name 'item'
+        :return:
+        """
         if self.selector is not None:
             candidates = self.selector.select(user, candidates)
 
@@ -28,6 +35,11 @@ class TopN(Recommender):
         if n is not None:
             scores = scores[:n]
 
+        scores = scores.to_frame('score')
+        scores.index.name = 'item'
+
+        if mapping is not None:
+            scores = scores.join(mapping, how='left')
         return scores
 
 
