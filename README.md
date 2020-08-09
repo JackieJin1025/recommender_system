@@ -1,6 +1,6 @@
 # Recommender_system
 
-This is a a generic recommender_system which provides various collaborative filterting algorithims including user-user, item-item, SVD, Factorization Machines, and so on. 
+This is a generic recommender_system which provides various collaborative filterting algorithims including user-user, item-item, SVD, Factorization Machines, and so on. 
 
 ## Getting Started
 
