@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
-from main.algorithm.basic import Predictor, BaseAlgo
-from main.utils.data import load_movielen_data, sparse_ratings
-from main.utils.debug import LogUtil
-from main.utils.functions import _get_xs
-from main.utils.metric import sparsity
+from recommender.algorithm.basic import Predictor, BaseAlgo
+from recommender.utils.data import load_movielen_data, sparse_ratings
+from recommender.utils.debug import LogUtil
+from recommender.utils.functions import _get_xs
+from recommender.utils.metric import sparsity
 
 
 class BaseSelector(BaseAlgo):

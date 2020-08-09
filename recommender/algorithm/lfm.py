@@ -1,11 +1,11 @@
 import pickle
 import random
 from operator import itemgetter
-from main.algorithm.basic import Predictor
+from recommender.algorithm.basic import Predictor
 import numpy as np
-from main.utils.debug import Timer
-from main.utils.data import load_movielen_data
-from main.utils.metric import _evaluate
+from recommender.utils.debug import Timer
+from recommender.utils.data import load_movielen_data
+from recommender.utils.metric import _evaluate
 
 
 class LFM(Predictor):

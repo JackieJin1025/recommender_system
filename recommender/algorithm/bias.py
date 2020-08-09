@@ -1,10 +1,10 @@
-from main.algorithm.basic import Predictor
+from recommender.algorithm.basic import Predictor
 import numpy as np
 import pandas as pd
 
-from main.utils.data import load_movielen_data
-from main.utils.debug import LogUtil, timer, Timer
-from main.utils.functions import _demean
+from recommender.utils.data import load_movielen_data
+from recommender.utils.debug import LogUtil, timer, Timer
+from recommender.utils.functions import _demean
 
 
 class Bias(Predictor):

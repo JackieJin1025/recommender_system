@@ -1,15 +1,15 @@
 
 import numpy as np
 from numba import njit
-from main.algorithm.basic import Predictor
-from main.algorithm.bias import Bias
-from main.utils.data import load_movielen_data
+from recommender.algorithm.basic import Predictor
+from recommender.algorithm.bias import Bias
+from recommender.utils.data import load_movielen_data
 import os
 import pandas as pd
 
-from main.utils.debug import LogUtil
-from main.utils.functions import scores_to_series
-from main.utils.metric import _evaluate
+from recommender.utils.debug import LogUtil
+from recommender.utils.functions import scores_to_series
+from recommender.utils.metric import _evaluate
 
 
 def _als_step(rmat, Y, n_factors, reg):

@@ -1,25 +1,21 @@
-import os
+from recommender.algorithm.als import ExplicitALS
+from recommender.algorithm.bias import Bias
 
-from numba import njit
-
-from main.algorithm.als import ExplicitALS
-from main.algorithm.bias import Bias
-from main.algorithm.funksvd import FunkSVD
-from main.algorithm.itemcf import ItemCF
-from main.algorithm.lfm import LFM
-from main.algorithm.svd import BiasedSVD
-from main.algorithm.usercf import UserCF
-from main.algorithm.recommender import TopN
-from main.algorithm.selector import NotRatedSelector
-from main.utils.data import get_data, train_test_split, load_movielen_data
-from main.utils.debug import LogUtil, Timer
+from recommender.algorithm.itemcf import ItemCF
+from recommender.algorithm.svd import BiasedSVD
+from recommender.algorithm.usercf import UserCF
+from recommender.algorithm.recommender import TopN
+from recommender.algorithm.selector import BaseSelector
+from recommender.algorithm.funksvd import FunkSVD
+from recommender.utils.data import get_data, train_test_split, load_movielen_data
+from recommender.utils.debug import LogUtil, Timer
 import numpy as np
 
 
 def _testRecommender():
     ratings, users, movies = load_movielen_data()
     predictor = ItemCF(min_threshold=0.1, min_nn=5, max_nn=20)
-    selector = NotRatedSelector()
+    selector = BaseSelector()
     user = 1
     model = TopN(predictor, selector)
     model.fit(ratings)
@@ -75,7 +71,7 @@ def _testBiasedSVD():
 if __name__ == '__main__':
     LogUtil.configLog()
     # _testUserCF()
-    _testItemCF()
-    # _testFunkSVD()
+    # _testItemCF()
+    _testFunkSVD()
     # _testBiasedSVD()
     # _testExplictALS()

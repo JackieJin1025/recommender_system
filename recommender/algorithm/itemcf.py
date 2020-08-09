@@ -5,14 +5,14 @@ import pickle
 import bottleneck
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-from main.algorithm.basic import Predictor
-from main.algorithm.bias import Bias
-from main.utils.data import get_data, load_movielen_data
+from recommender.algorithm.basic import Predictor
+from recommender.algorithm.bias import Bias
+from recommender.utils.data import get_data, load_movielen_data
 import os
 import pandas as pd
 
-from main.utils.debug import LogUtil, Timer
-from main.utils.functions import _demean, _norm, _nn_score, _get_xs
+from recommender.utils.debug import LogUtil, Timer
+from recommender.utils.functions import _demean, _norm, _nn_score, _get_xs
 
 
 class ItemCF(Predictor):

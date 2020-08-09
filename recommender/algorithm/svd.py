@@ -5,16 +5,16 @@ from sys import path
 
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-from main.algorithm.basic import Predictor
-from main.algorithm.bias import Bias
-from main.utils.data import get_data, load_movielen_data
+from recommender.algorithm.basic import Predictor
+from recommender.algorithm.bias import Bias
+from recommender.utils.data import get_data, load_movielen_data
 import os
 import pandas as pd
 
 from sklearn.decomposition import TruncatedSVD
 
-from main.utils.debug import Timer, LogUtil
-from main.utils.functions import scores_to_series
+from recommender.utils.debug import Timer, LogUtil
+from recommender.utils.functions import scores_to_series
 
 
 class BiasedSVD(Predictor):

@@ -1,7 +1,7 @@
 from lenskit.algorithms.user_knn import UserUser
-from main.algorithm.usercf import UserCF
-from main.utils.data import load_movielen_data
-from main.utils.debug import Timer, LogUtil
+from recommender.algorithm.usercf import UserCF
+from recommender.utils.data import load_movielen_data
+from recommender.utils.debug import Timer, LogUtil
 
 LogUtil.configLog()
 ratings, users, movies = load_movielen_data()

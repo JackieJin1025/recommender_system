@@ -7,16 +7,16 @@ import numpy as np
 from numba import njit
 from sklearn.metrics.pairwise import cosine_similarity
 
-from main.algorithm.basic import Predictor
-from main.algorithm.bias import Bias
-from main.algorithm.itemcf import ItemCF
-from main.utils.debug import Timer, LogUtil
-from main.utils.data import load_movielen_data
-from main.utils.functions import _nn_score, _get_xs
+from recommender.algorithm.basic import Predictor
+from recommender.algorithm.bias import Bias
+from recommender.algorithm.itemcf import ItemCF
+from recommender.utils.debug import Timer, LogUtil
+from recommender.utils.data import load_movielen_data
+from recommender.utils.functions import _nn_score, _get_xs
 from heapq import heapify, heappop, heappush
 import time
 
-from main.utils.functions import _demean, _norm
+from recommender.utils.functions import _demean, _norm
 
 
 class UserCF(Predictor):

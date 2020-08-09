@@ -1,13 +1,13 @@
 from numba import njit
 
-from main.algorithm.basic import Predictor
+from recommender.algorithm.basic import Predictor
 import pandas as pd
 import numpy as np
 
-from main.utils.data import load_movielen_data, train_test_split
-from main.utils.debug import timer
-from main.utils.functions import scores_to_series
-from main.utils.metric import MAE, _evaluate
+from recommender.utils.data import load_movielen_data, train_test_split
+from recommender.utils.debug import timer
+from recommender.utils.functions import scores_to_series
+from recommender.utils.metric import MAE, _evaluate
 
 
 @njit

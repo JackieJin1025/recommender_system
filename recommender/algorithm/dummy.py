@@ -1,7 +1,7 @@
 import numpy as np
 
-from main.algorithm.basic import Predictor
-from main.utils.functions import _get_xs, scores_to_series
+from recommender.algorithm.basic import Predictor
+from recommender.utils.functions import _get_xs, scores_to_series
 
 
 class DummyPredictor(Predictor):

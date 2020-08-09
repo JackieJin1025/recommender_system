@@ -1,10 +1,10 @@
 from sklearn.feature_extraction import DictVectorizer
 import tensorflow.compat.v1 as tf
-from main.utils.data import load_movielen_data, train_test_split, batcher
-from main.algorithm.basic import Predictor
+from recommender.utils.data import load_movielen_data, train_test_split, batcher
+from recommender.algorithm.basic import Predictor
 import numpy as np
 
-from main.utils.debug import LogUtil
+from recommender.utils.debug import LogUtil
 
 tf.compat.v1.disable_eager_execution()
 
