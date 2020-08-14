@@ -1,9 +1,9 @@
 from abc import abstractmethod, ABC
 
 
-from recommender.algorithm.basic import Recommender
-from recommender.algorithm.itemcf import ItemCF
-from recommender.utils.data import load_movielen_data
+from recsys.cf.basic import Recommender
+from recsys.cf.itemcf import ItemCF
+from recsys.utils.data import load_movielen_data
 
 
 class TopN(Recommender):

@@ -1,7 +1,7 @@
 import numpy as np
 
-from recommender.algorithm.basic import Predictor
-from recommender.utils.functions import _get_xs, scores_to_series
+from recsys.cf.basic import Predictor
+from recsys.utils.functions import _get_xs, scores_to_series
 
 
 class DummyPredictor(Predictor):

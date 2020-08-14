@@ -1,13 +1,13 @@
 from numba import njit
 
-from recommender.algorithm.basic import Predictor
+from recsys.cf.basic import Predictor
 import pandas as pd
 import numpy as np
 
-from recommender.utils.data import load_movielen_data, train_test_split
-from recommender.utils.debug import timer
-from recommender.utils.functions import scores_to_series
-from recommender.utils.metric import MAE, _evaluate
+from recsys.utils.data import load_movielen_data, train_test_split
+from recsys.utils.debug import timer
+from recsys.utils.functions import scores_to_series
+from recsys.utils.metric import MAE, _evaluate
 
 
 @njit

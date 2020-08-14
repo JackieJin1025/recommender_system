@@ -2,9 +2,9 @@ import inspect
 from abc import abstractmethod
 from collections import defaultdict
 from tqdm import tqdm
-from recommender.utils.data import sparse_ratings
-from recommender.utils.debug import LogUtil, Timer, timer
-from recommender.utils.metric import precision, recall, coverage, sparsity, RMSE, MAE
+from recsys.utils.data import sparse_ratings
+from recsys.utils.debug import LogUtil, Timer, timer
+from recsys.utils.metric import precision, recall, coverage, sparsity, RMSE, MAE
 from os import path
 import pandas as pd
 

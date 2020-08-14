@@ -1,9 +1,9 @@
-from recommender.algorithm.dummy import DummyPredictor
-from recommender.algorithm.recommender import TopN
-from recommender.algorithm.selector import NotRatedSelector, RatedSelector
-from recommender.algorithm.funksvd import FunkSVD
-from recommender.utils.data import load_movielen_data
-from recommender.utils.debug import LogUtil
+from recsys.cf.dummy import DummyPredictor
+from recsys.cf.recommender import TopN
+from recsys.cf.selector import NotRatedSelector, RatedSelector
+from recsys.cf.funksvd import FunkSVD
+from recsys.utils.data import load_movielen_data
+from recsys.utils.debug import LogUtil
 import pandas as pd
 
 pd.set_option('display.max_columns', None)

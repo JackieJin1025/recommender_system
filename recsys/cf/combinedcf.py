@@ -1,5 +1,5 @@
-from recommender.algorithm.aggregator import EqualAggregator
-from recommender.algorithm.basic import Predictor
+from recsys.cf.aggregator import EqualAggregator
+from recsys.cf.basic import Predictor
 
 
 class CombinedCF(Predictor):

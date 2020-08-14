@@ -1,6 +1,6 @@
-from recommender.algorithm.funksvd import FunkSVD
-from recommender.utils.data import train_test_split, load_movielen_data
-from recommender.utils.debug import LogUtil
+from recsys.cf.funksvd import FunkSVD
+from recsys.utils.data import train_test_split, load_movielen_data
+from recsys.utils.debug import LogUtil
 
 LogUtil.configLog()
 model = FunkSVD(learning_rate=0.001, reg=0.005, n_epochs=100, n_factors=30)

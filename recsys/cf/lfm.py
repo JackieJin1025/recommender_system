@@ -1,11 +1,11 @@
 import pickle
 import random
 from operator import itemgetter
-from recommender.algorithm.basic import Predictor
+from recsys.cf.basic import Predictor
 import numpy as np
-from recommender.utils.debug import Timer
-from recommender.utils.data import load_movielen_data
-from recommender.utils.metric import _evaluate
+from recsys.utils.debug import Timer
+from recsys.utils.data import load_movielen_data
+from recsys.utils.metric import _evaluate
 
 
 class LFM(Predictor):

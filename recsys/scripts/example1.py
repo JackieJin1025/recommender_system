@@ -1,14 +1,14 @@
-from recommender.algorithm.als import ExplicitALS
-from recommender.algorithm.bias import Bias
+from recsys.cf.als import ExplicitALS
+from recsys.cf.bias import Bias
 
-from recommender.algorithm.itemcf import ItemCF
-from recommender.algorithm.svd import BiasedSVD
-from recommender.algorithm.usercf import UserCF
-from recommender.algorithm.recommender import TopN
-from recommender.algorithm.selector import BaseSelector
-from recommender.algorithm.funksvd import FunkSVD
-from recommender.utils.data import get_data, train_test_split, load_movielen_data
-from recommender.utils.debug import LogUtil, Timer
+from recsys.cf.itemcf import ItemCF
+from recsys.cf.svd import BiasedSVD
+from recsys.cf.usercf import UserCF
+from recsys.cf.recommender import TopN
+from recsys.cf.selector import BaseSelector
+from recsys.cf.funksvd import FunkSVD
+from recsys.utils.data import get_data, train_test_split, load_movielen_data
+from recsys.utils.debug import LogUtil, Timer
 import numpy as np
 
 

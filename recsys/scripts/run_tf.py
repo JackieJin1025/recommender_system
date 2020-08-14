@@ -1,5 +1,5 @@
 import sys
-from recommender.utils.data import load_movielen_data, train_test_split
+from recsys.utils.data import load_movielen_data, train_test_split
 import numpy as np
 from sklearn.feature_extraction import DictVectorizer
 import tensorflow.compat.v1 as tf
