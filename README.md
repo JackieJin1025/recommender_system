@@ -7,9 +7,9 @@ This is a generic recommender_system which provides various collaborative filter
 Here is a simple example showing how you can use dataset movielens (1m), split it into test and train dataset, and compute the MAE and RMSE of FUNKSVD:
 
 ```python 
-from recommender.algorithm.funksvd import FunkSVD
-from recommender.utils.data import train_test_split, load_movielen_data
-from recommender.utils.debug import LogUtil
+from recsys.cf.funksvd import FunkSVD
+from recsys.utils.data import train_test_split, load_movielen_data
+from recsys.utils.debug import LogUtil
 
 LogUtil.configLog()
 model = FunkSVD(learning_rate=0.001, reg=0.005, n_epochs=100, n_factors=30)
@@ -23,20 +23,19 @@ model.eval(testing)
 ## Output
 
 ```
-2020-08-08 19:47:21,277 - FunkSVD - INFO - start evaluating with 99950 test samples ...
-100%|██████████| 6040/6040 [00:33<00:00, 179.58it/s]
-2020-08-08 19:47:55,289 - FunkSVD - INFO - rmse: 0.879, mae: 0.689
-2020-08-08 19:47:55,289 - FunkSVD - INFO - evaluation takes 34.011
+2020-08-14 08:35:29,392 - FunkSVD - INFO - start evaluating with 99950 test samples ...
+100%|██████████| 6040/6040 [00:25<00:00, 239.45it/s]
+2020-08-14 08:35:55,025 - FunkSVD - INFO - rmse: 0.880, mae: 0.688
+2020-08-14 08:35:55,026 - FunkSVD - INFO - evaluation takes 25.633
 ```
 
 Another example showing recommender
 ```python 
-from recommender.algorithm.dummy import DummyPredictor
-from recommender.algorithm.recommender import TopN
-from recommender.algorithm.selector import NotRatedSelector, RatedSelector
-from recommender.algorithm.funksvd import FunkSVD
-from recommender.utils.data import load_movielen_data
-from recommender.utils.debug import LogUtil
+from recsys.cf.recommender import TopN
+from recsys.cf.selector import NotRatedSelector, RatedSelector
+from recsys.cf.funksvd import FunkSVD
+from recsys.utils.data import load_movielen_data
+from recsys.utils.debug import LogUtil
 import pandas as pd
 
 pd.set_option('display.max_columns', None)
@@ -48,32 +47,36 @@ users.set_index('user', inplace=True)
 
 predictor = FunkSVD(learning_rate=0.001, reg=0.005, n_epochs=100, n_factors=30)
 unrated_selector = NotRatedSelector()
-model1 = TopN(predictor, unrated_selector)
+model = TopN(predictor, unrated_selector)
 
-model1.fit(ratings)
+model.fit(ratings)
 
 user_id = 1
 n = 10
+
+model1 = TopN(predictor, unrated_selector)
 print('Top %d recommended movies for user %s' %(n, user_id))
-print(model1.recommend(user_id, n, mapping=movies))
+print(model.recommend(user_id, n, mapping=movies))
 ```
 
 ## Output
 
 ```
 Top 10 recommended movies for user 1
-         score                                              Title  
-item                                                                
-2905  4.857698                                     Sanjuro (1962)   
-318   4.768027                   Shawshank Redemption, The (1994)   
-904   4.704973                                 Rear Window (1954)   
-3338  4.695507                             For All Mankind (1989)   
-670   4.690026             World of Apu, The (Apur Sansar) (1959)   
-2019  4.686721  Seven Samurai (The Magnificent Seven) (Shichin...   
-858   4.677496                              Godfather, The (1972)   
-3470  4.670209                                 Dersu Uzala (1974)   
-923   4.664409                                Citizen Kane (1941)   
-326   4.663084                            To Live (Huozhe) (1994)   
+         score                                   Title            Genres
+item                                                                    
+2905  4.845173                          Sanjuro (1962)  Action|Adventure
+1949  4.730582           Man for All Seasons, A (1966)             Drama
+318   4.671630        Shawshank Redemption, The (1994)             Drama
+670   4.662056  World of Apu, The (Apur Sansar) (1959)             Drama
+3338  4.661879                  For All Mankind (1989)       Documentary
+326   4.653455                 To Live (Huozhe) (1994)             Drama
+3022  4.649896                     General, The (1927)            Comedy
+668   4.643326                  Pather Panchali (1955)             Drama
+953   4.635666            It's a Wonderful Life (1946)             Drama
+905   4.628309            It Happened One Night (1934)            Comedy
+
+Process finished with exit code 0
 
 ```
 
