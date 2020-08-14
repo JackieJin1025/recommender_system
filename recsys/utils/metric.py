@@ -32,7 +32,34 @@ def MAE(pred, actual, ignore_na=True):
     return a
 
 
-def precision(recommends, tests):
+def precision_recall_at_k(pred, actual, k=10, threshold=3.5):
+    """Return precision and recall at k metrics for each user"""
+    if actual.index.nunique() != len(actual):
+        raise ValueError("index of actual is not unique")
+
+    if pred.index.nunique() != len(pred):
+        raise ValueError("index of pred is not unique")
+
+    actual = actual[actual > threshold]
+    pred = pred[pred > threshold]
+    if k is not None:
+        pred.sort_values(ascending=False, inplace=True)
+        pred = pred[:k]
+
+    # Number of relevant items
+    n_rel = len(actual)
+    # Number of recommended items in top k
+    n_rec_k = len(pred)
+
+    joined_index = pred.index.intersection(actual.index)
+    n_rel_and_rec_k = len(joined_index)
+    precision = n_rel_and_rec_k / n_rec_k if n_rec_k != 0 else 0
+    recall = n_rel_and_rec_k / n_rel if n_rel != 0 else 0
+
+    return precision, recall
+
+
+def precision(recommends, tests, threshold=3.5):
     """
     :param recommends: dict { userID : recommended items  }
     :param tests: dict { userID : true items  }
@@ -43,16 +70,17 @@ def precision(recommends, tests):
     user_sum = 0.
     for user_id, items in recommends.items():
         recommend_set = set(items)
-        test_set = set(tests[user_id])
+        tests = tests[user_id]
+        tests = tests[tests > threshold]
+        test_set = set(tests)
         n_union += len(recommend_set & test_set)
         user_sum += len(test_set)
 
     return n_union / user_sum
 
 
-def recall(recommends, tests):
+def recall(recommends, tests, threshold=3.5):
     """
-        计算Recall
         @param recommends:   { userID : recommended items  }
         @param tests:  test set: { userID : true items  }
         @return: Recall
@@ -61,7 +89,9 @@ def recall(recommends, tests):
     recommend_sum = 0.
     for user_id, items in recommends.items():
         recommend_set = set(items)
-        test_set = set(tests[user_id])
+        tests = tests[user_id]
+        tests = tests[tests > threshold]
+        test_set = set(tests)
         n_union += len(recommend_set & test_set)
         recommend_sum += len(recommend_set)
 

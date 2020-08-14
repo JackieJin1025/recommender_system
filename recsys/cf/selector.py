@@ -1,14 +1,15 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
-from recsys.cf.basic import Predictor, BaseAlgo
+from sklearn.base import BaseEstimator
+
 from recsys.utils.data import load_movielen_data, sparse_ratings
 from recsys.utils.debug import LogUtil
 from recsys.utils.functions import _get_xs
 from recsys.utils.metric import sparsity
 
 
-class BaseSelector(BaseAlgo):
+class BaseSelector(BaseEstimator):
     def __init__(self, **kwargs):
         self.rmat = None
         self.users = None
