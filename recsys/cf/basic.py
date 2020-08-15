@@ -12,7 +12,7 @@ import pandas as pd
 
 
 class Predictor(BaseEstimator):
-    def __init__(self, filename=None, *args, **kwargs):
+    def __init__(self, filename=None):
         """
             :param filename: if provided, cache parameters trained
         """
@@ -21,7 +21,7 @@ class Predictor(BaseEstimator):
         self.users = None
         self.items = None
         self.log = LogUtil.getLogger(self.__class__.__name__)
-        super(Predictor, self).__init__(*args, **kwargs)
+        super(Predictor, self).__init__()
 
     def process_data(self, origin_data):
         """

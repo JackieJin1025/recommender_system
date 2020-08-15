@@ -16,22 +16,23 @@ from recsys.utils.functions import _demean, _norm, _nn_score, _get_xs
 
 
 class ItemCF(Predictor):
-
     def __init__(self,
                  min_nn=1, 
                  max_nn=50,
                  min_threshold=None,
                  bias = None,
-                 *args, **kwargs):
+                 popularity=0):
+
         self.min_nn = min_nn 
         self.max_nn = max_nn 
         self.min_threshold = min_threshold
         self.bias = bias
-
         self.item_sim_matrix = None
-        super(ItemCF, self).__init__(*args, **kwargs)
+        self.popularity = popularity
+        super(ItemCF, self).__init__()
 
     def fit(self, data):
+
         if self.bias is not None:
             self.bias.fit(data)
         super(ItemCF, self).fit(data)
@@ -56,8 +57,15 @@ class ItemCF(Predictor):
         rmat = self.rmat.tocsc()
         #normalize by item
         _ = _demean(rmat)
-        _ = _norm(rmat)
+        norm = _norm(rmat)
+
         item_sim = rmat.T.dot(rmat).toarray()
+        if self.popularity > 0:
+            self.min_threshold = 0
+            self.log.warning("min_threshold %.3f is forced to 0 because popularity %.3f > 0", self.min_threshold, self.popularity)
+            norm = norm.reshape(len(norm), -1)
+            scale = norm.dot(norm.T)
+            item_sim = np.power(scale, self.popularity) * item_sim
         return item_sim
 
     def predict_for_user(self, user, items=None, ratings=None):
@@ -119,7 +127,7 @@ if __name__ == '__main__':
     LogUtil.configLog()
     ratings, users, movies = load_movielen_data()
     bias = Bias()
-    itemcf = ItemCF(min_threshold=0.1, min_nn=5, bias=bias)
+    itemcf = ItemCF(min_threshold=0.1, min_nn=5, bias=bias, popularity=0.5)
     print(itemcf.get_params())
     itemcf.fit(ratings)
     user = 1

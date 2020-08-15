@@ -9,15 +9,14 @@ from recsys.utils.functions import _demean
 
 class Bias(Predictor):
 
-    def __init__(self,  user_bias=True, item_bias=True, *args, **kwargs):
+    def __init__(self,  user_bias=True, item_bias=True):
         self.user_bias = user_bias
         self.item_bias = item_bias
         self.user_offset = None
         self.item_offset = None
         self.mean = None
         self.nmat = None
-
-        super(Bias, self).__init__(*args, **kwargs)
+        super(Bias, self).__init__()
 
     def _train(self):
         m, n = self.rmat.shape
