@@ -2,7 +2,10 @@ import numpy as np
 from numba import njit
 import pandas as pd
 
-def _demean(sparse):
+from recsys.utils.data import load_movielen_data, sparse_ratings
+
+
+def _demean(sparse, damping=0):
     """
     demean sparse matrix along row if sparse is csr or along column if sparse is csc
     :param sparse: csr or csc
@@ -21,7 +24,7 @@ def _demean(sparse):
         if sp == ep:
             continue  # empty row
         vs = data[sp:ep]
-        m = np.mean(vs)
+        m = np.sum(vs) / (damping + len(vs))
         means[i] = m
         sparse.data[sp:ep] -= m
     return means
@@ -137,3 +140,44 @@ def scores_to_series(scores, item_series, items):
     scores = scores[item_idx]
     df = df.append(pd.Series(data=scores, index=items))
     return df
+
+
+def cosine(sparse_csr, min_sprt=5):
+    """not ready to use yet """
+    nrow, ncol = sparse_csr.shape
+    sparse_coo = sparse_csr.tocoo(copy=True)
+    rating = pd.DataFrame([sparse_coo.row.astype(int), sparse_coo.col.astype(int), sparse_coo.data])
+    n_x = len(sparse_coo.data)
+
+    prods = np.zeros((nrow, nrow), np.double)
+    freq = np.zeros((nrow, nrow), np.int)
+    sqi = np.zeros((nrow, nrow), np.double)
+    sqj = np.zeros((nrow, nrow), np.double)
+    sim = np.zeros((nrow, nrow), np.double)
+
+    for upos_i, ipos_i, score_i in rating:
+        for upos_j, ipos_j, score_j in rating:
+                prods[upos_i, upos_j] += score_i * score_j
+                freq[upos_i, upos_j] += 1
+                sqi[upos_i, upos_j] += score_i**2
+                sqj[upos_i, upos_j] += score_j**2
+
+    for xi in range(n_x):
+        sim[xi, xi] = 1
+        for xj in range(xi + 1, n_x):
+            if freq[xi, xj] < min_sprt:
+                sim[xi, xj] = 0
+            else:
+                denum = np.sqrt(sqi[xi, xj] * sqj[xi, xj])
+                sim[xi, xj] = prods[xi, xj] / denum
+
+            sim[xj, xi] = sim[xi, xj]
+
+    return sim
+
+
+if __name__ == '__main__':
+    ratings, users, movies = load_movielen_data()
+    rmat, _, _, = sparse_ratings(ratings)
+    print("xxx")
+    print(cosine(rmat))

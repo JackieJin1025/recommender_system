@@ -125,7 +125,7 @@ def popularity(item_popular, recommends):
     return popularity / n
 
 
-def _evaluate(actual, pu, qi, bu=None, bi=None, global_mean=None):
+def _evaluate(actual, pu=None, qi=None, bu=None, bi=None, global_mean=None):
     """
     :param actual: ratings m x n
     :param pu: user latent factor m x k
@@ -136,7 +136,9 @@ def _evaluate(actual, pu, qi, bu=None, bi=None, global_mean=None):
     :return:
     """
     mask = actual != 0
-    pred = pu.dot(qi.T)
+    pred = np.zeros(actual.shape)
+    if pu is not None and qi is not None:
+        pred = pu.dot(qi.T)
     if bu is not None:
         pred += bu.reshape(-1, 1)
     if bi is not None:

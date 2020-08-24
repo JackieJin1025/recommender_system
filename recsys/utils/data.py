@@ -147,7 +147,28 @@ def load_movielen_data():
     return ratings, users, movies
 
 
+
+
+def load_ctr_data():
+    import random
+    import pandas as pd
+    import gzip
+    n = 40428967  # total number of records in the clickstream data
+    sample_size = 1000000
+
+    p = Path(__file__).parents[2]
+    filename = os.path.join(p, 'data', 'train.gz')
+
+    # skip_values = sorted(random.sample(range(1, n), n - sample_size))
+    parse_date = lambda val: pd.datetime.strptime(val, '%y%m%d%H')
+    with gzip.open(filename) as f:
+        df = pd.read_csv(f, parse_dates=['hour'], date_parser=parse_date, nrows=sample_size)
+    return df
+
+
+
 if __name__ == '__main__':
+    df = load_ctr_data()
 
     ratings, users, movies = load_movielen_data()
     print(ratings.head())

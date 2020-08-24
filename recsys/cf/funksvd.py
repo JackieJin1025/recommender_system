@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 
 from recsys.utils.data import load_movielen_data, train_test_split
-from recsys.utils.debug import timer
+from recsys.utils.debug import timer, LogUtil
 from recsys.utils.functions import scores_to_series
 from recsys.utils.metric import MAE, _evaluate
 
@@ -17,7 +17,7 @@ def _shuffle(X):
 
 
 @njit
-def _run_epoch(X, pu, qi, bu, bi, global_mean, n_factors, lr, reg):
+def _run_epoch(X, pu, qi, bu, bi, global_mean,  lr, reg):
     """Runs an epoch, updating model weights (pu, qi, bu, bi).
 
     Args:
@@ -27,7 +27,6 @@ def _run_epoch(X, pu, qi, bu, bi, global_mean, n_factors, lr, reg):
         bu (numpy array): users biases vector.
         bi (numpy array): items biases vector.
         global_mean (float): ratings arithmetic mean.
-        n_factors (int): number of latent factors.
         lr (float): learning rate.
         reg (float): regularization factor.
 
@@ -37,12 +36,14 @@ def _run_epoch(X, pu, qi, bu, bi, global_mean, n_factors, lr, reg):
         bu (numpy array): users biases vector updated.
         bi (numpy array): items biases vector updated.
     """
+
+    n_factors = pu.shape[1]
+
     for i in range(X.shape[0]):
         user, item, rating = int(X[i, 0]), int(X[i, 1]), X[i, 2]
 
         # Predict current rating
         pred = global_mean + bu[user] + bi[item]
-
         for factor in range(n_factors):
             pred += pu[user, factor] * qi[item, factor]
 
@@ -70,7 +71,7 @@ class FunkSVD(Predictor):
         http://sifter.org/simon/journal/20061211.html
         https://github.com/gbolmier/funk-svd
     """
-    def __init__(self, n_epochs, n_factors, learning_rate, reg, shuffle=False, *args, **kwargs):
+    def __init__(self, n_epochs, n_factors, learning_rate, reg, shuffle=False):
         self.n_epochs = n_epochs
         self.n_factors = n_factors
         self.reg = reg
@@ -78,7 +79,7 @@ class FunkSVD(Predictor):
         self.user_p = None
         self.item_q = None
         self.shuffle = shuffle
-        super(FunkSVD, self).__init__(*args, **kwargs)
+        super(FunkSVD, self).__init__()
 
     def _init_data(self):
         """
@@ -120,8 +121,7 @@ class FunkSVD(Predictor):
             if self.shuffle:
                 X = _shuffle(X)
 
-            pu, qi, bu, bi = _run_epoch(X, pu, qi, bu, bi, self.global_mean,
-                                        self.n_factors, self.lr, self.reg)
+            pu, qi, bu, bi = _run_epoch(X, pu, qi, bu, bi, self.global_mean, self.lr, self.reg)
 
             if epoch_ix % 10 == 0:
                 rmse, mae = _evaluate(self.rmat.toarray(), pu, qi, bu, bi, self.global_mean)
@@ -151,16 +151,12 @@ class FunkSVD(Predictor):
 
 
 if __name__ == '__main__':
-    model = FunkSVD(learning_rate=0.001, reg=0.005, n_epochs=100, n_factors=30)
+    LogUtil.configLog()
+    model = FunkSVD(learning_rate=0.001, reg=0.005, n_epochs=100, n_factors=0)
     ratings, users, movies = load_movielen_data()
-    # model.fit(ratings)
-    # user = 1
-    # movies = list(movies.item.astype(int))
-    # df = model.predict_for_user(user, movies)
-    # print(df.describe())
-    #
-
-    training, testing = train_test_split(ratings)
-    model.fit(training)
-    print(model.eval(testing))
+    model.fit(ratings)
+    user = 1
+    movies = list(movies.item.astype(int))
+    df = model.predict_for_user(user, movies)
+    print(df.describe())
 
